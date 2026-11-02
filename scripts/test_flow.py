@@ -1,5 +1,6 @@
 import io
 import sys
+import uuid
 from pathlib import Path
 
 # Add project root to sys.path
@@ -25,12 +26,15 @@ print(f"[PASS] /download/idea-template -> 200 OK ({len(res.content)} bytes)")
 
 # 3. Test Full Team Registration Flow
 test_file = io.BytesIO(b"Sample presentation content for test")
+rand_id = uuid.uuid4().hex[:6]
+team_name = f"AeroShield Robotics {rand_id}"
+
 form_data = {
-    'team_name': 'AeroShield Robotics',
+    'team_name': team_name,
     'college_name': 'Indian Institute of Science',
     'track': 'Health, Education & Digital Innovation',
     'leader_name': 'Arjun Mehta',
-    'leader_email': 'arjun.mehta@example.com',
+    'leader_email': f'arjun.mehta.{rand_id}@example.com',
     'leader_phone': '9876543210',
     'leader_department': 'Computer Science',
     'leader_year': '3rd Year',
@@ -64,7 +68,7 @@ res = client.get(f"/api/registration/{reg_data['team_code']}")
 assert res.status_code == 200
 ticket = res.json()
 assert ticket['payment_status'] == 'paid'
-assert ticket['team_name'] == 'AeroShield Robotics'
+assert ticket['team_name'] == team_name
 print(f"[PASS] Public Ticket API verified: Team '{ticket['team_name']}' is confirmed as PAID!")
 
 print("All end-to-end tests passed successfully with 100% accuracy!")
