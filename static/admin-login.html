@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin Portal Login · JM Vertex Hackathon</title>
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23147A47'/%3E%3Cpath d='M8 8 L24 24 M24 8 L8 24' stroke='%235BB8E8' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">
+
+  <!-- Fonts & Theme CSS -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="/static/css/theme.css">
+</head>
+<body style="min-height:100vh; display:grid; place-items:center; background:linear-gradient(135deg, #FFFFFF 0%, var(--blue-pale) 100%);">
+
+  <main style="width:min(440px, 100% - 2rem); padding:1rem 0;">
+    <div class="glass-panel" style="border: 2px solid var(--border);">
+      <div style="text-align:center; margin-bottom:2rem;">
+        <div style="width:48px; height:48px; border-radius:12px; background:linear-gradient(135deg, var(--green), var(--blue)); display:grid; place-items:center; color:#fff; font-size:1.3rem; margin:0 auto 1rem; box-shadow:0 6px 18px var(--green-glow);">⚡</div>
+        <h2>Admin Authentication</h2>
+        <p class="muted" style="font-size:0.92rem;">Enter your organizer administrative credentials to access the command portal.</p>
+      </div>
+
+      <form id="adminLoginForm" novalidate>
+        <div id="loginError" class="status err" hidden></div>
+
+        <div class="field">
+          <label for="adm_user">Username</label>
+          <input type="text" id="adm_user" name="username" placeholder="admin" required autocomplete="username">
+        </div>
+
+        <div class="field">
+          <label for="adm_pass">Password</label>
+          <input type="password" id="adm_pass" name="password" placeholder="••••••••" required autocomplete="current-password">
+        </div>
+
+        <button type="submit" class="btn btn-primary" id="btnLoginSubmit" style="width:100%; margin-top:1rem;">
+          Authenticate & Access Dashboard →
+        </button>
+      </form>
+
+      <div style="text-align:center; margin-top:1.8rem; font-size:0.85rem;">
+        <a href="/" class="muted">← Return to Public Event Site</a>
+      </div>
+    </div>
+  </main>
+
+  <script src="/static/js/common.js"></script>
+  <script>
+    (() => {
+      const { $, postJSON, setLoading } = HK;
+      const form = $("#adminLoginForm");
+      const errBox = $("#loginError");
+      const submitBtn = $("#btnLoginSubmit");
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        errBox.hidden = true;
+        setLoading(submitBtn, true);
+
+        try {
+          const res = await postJSON("/api/admin/login", {
+            username: form.username.value.trim(),
+            password: form.password.value,
+          });
+          if (res.ok) {
+            window.location.href = "/admin";
+          }
+        } catch (err) {
+          errBox.hidden = false;
+          errBox.textContent = err.message || "Invalid username or password. Please try again.";
+        } finally {
+          setLoading(submitBtn, false);
+        }
+      });
+    })();
+  </script>
+</body>
+</html>

@@ -1,0 +1,478 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin Dashboard · JM Vertex Hackathon 2027</title>
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23147A47'/%3E%3Cpath d='M8 8 L24 24 M24 8 L8 24' stroke='%235BB8E8' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">
+
+  <!-- Fonts & Theme CSS -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="/static/css/theme.css">
+</head>
+<body class="admin-shell">
+
+  <!-- Admin Navigation Header -->
+  <header class="admin-nav">
+    <div style="display:flex; align-items:center; gap:1.2rem;">
+      <a class="brand" href="/admin" style="font-size:1.15rem;">
+        <span class="brand-mark">⚡</span>
+        <span>JM Vertex Admin</span>
+      </a>
+      <span class="badge-status shortlisted" style="font-size:0.75rem;">OPERATIONAL</span>
+    </div>
+    <div style="display:flex; align-items:center; gap:1.2rem;">
+      <a href="/" target="_blank" class="btn btn-outline btn-sm">Public Event Site ↗</a>
+      <span class="mono" style="font-size:0.85rem; color:var(--text-muted);">Admin: <strong id="adminUsername" style="color:var(--green-dark);">–</strong></span>
+      <button type="button" class="btn btn-outline btn-sm" id="btnAdminLogout" style="border-color:var(--error); color:var(--error);">Logout</button>
+    </div>
+  </header>
+
+  <main class="container" style="padding: 2rem 0 5rem;">
+
+    <!-- Metrics Cards Grid -->
+    <div class="admin-metrics-grid">
+      <div class="metric-card">
+        <small>Total Registrations</small>
+        <div class="metric-val" id="mTotalTeams">0</div>
+      </div>
+      <div class="metric-card">
+        <small>Paid vs Pending Teams</small>
+        <div class="metric-val" style="color:var(--green);"><span id="mPaidTeams">0</span> <small style="font-size:1rem; color:var(--text-muted); font-weight:400;">/ <span id="mPendingTeams">0</span></small></div>
+      </div>
+      <div class="metric-card">
+        <small>Confirmed Participants</small>
+        <div class="metric-val" id="mConfirmedParts">0</div>
+      </div>
+      <div class="metric-card">
+        <small>Total Revenue</small>
+        <div class="metric-val" style="color:var(--green-dark);">₹<span id="mRevenue">0</span></div>
+      </div>
+      <div class="metric-card">
+        <small>"Notify Me" Leads</small>
+        <div class="metric-val" id="mLeads">0</div>
+      </div>
+    </div>
+
+    <!-- Track Distribution Strip -->
+    <div class="glass-panel" style="padding:1rem 1.4rem; margin-bottom:2rem; display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:1rem;">
+      <span style="font-family:var(--font-heading); font-weight:700; font-size:0.9rem; color:var(--green-dark);">TRACK BREAKDOWN:</span>
+      <div style="display:flex; flex-wrap:wrap; gap:1rem; font-size:0.88rem;">
+        <span>Safety & Empowerment: <strong id="trkSafety" class="mono">0</strong></span>
+        <span>•</span>
+        <span>Health & Digital: <strong id="trkHealth" class="mono">0</strong></span>
+        <span>•</span>
+        <span>Sustainability & Smart: <strong id="trkSustain" class="mono">0</strong></span>
+      </div>
+    </div>
+
+    <!-- Toolbar: Search, Filters & Export -->
+    <div class="admin-toolbar">
+      <div style="display:flex; flex-wrap:wrap; gap:0.8rem; align-items:center; flex:1; max-width:800px;">
+        <input type="text" id="adminSearch" placeholder="Search team, code, leader, college, email..." style="width:280px; padding:0.6rem 0.9rem; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:0.9rem;">
+
+        <select id="filterTrack" style="padding:0.6rem 0.9rem; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:0.9rem;">
+          <option value="">All Tracks</option>
+          <option value="Human Safety, Rights & Empowerment">Human Safety & Empowerment</option>
+          <option value="Health, Education & Digital Innovation">Health & Digital Innovation</option>
+          <option value="Sustainability, Smart Communities & Social Entrepreneurship">Sustainability & Smart Communities</option>
+        </select>
+
+        <select id="filterReview" style="padding:0.6rem 0.9rem; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:0.9rem;">
+          <option value="">All Review Statuses</option>
+          <option value="submitted">Submitted</option>
+          <option value="under_review">Under Review</option>
+          <option value="shortlisted">Shortlisted</option>
+          <option value="waitlist">Waitlist</option>
+          <option value="rejected">Rejected</option>
+        </select>
+
+        <select id="filterPayment" style="padding:0.6rem 0.9rem; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:0.9rem;">
+          <option value="">All Payments</option>
+          <option value="paid">Paid</option>
+          <option value="pending">Pending</option>
+        </select>
+      </div>
+
+      <div style="display:flex; gap:0.6rem;">
+        <a class="btn btn-outline btn-sm" href="/api/admin/export/csv" download>Export CSV</a>
+        <a class="btn btn-primary btn-sm" href="/api/admin/export/excel" download>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          Export Excel (.xlsx)
+        </a>
+      </div>
+    </div>
+
+    <!-- Teams Table -->
+    <div class="admin-table-wrap">
+      <table class="admin-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Team Code</th>
+            <th>Team Name</th>
+            <th>Track</th>
+            <th>Leader Details</th>
+            <th>College</th>
+            <th>Crew</th>
+            <th>Payment</th>
+            <th>Review Status</th>
+            <th style="text-align:right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="teamsTableBody">
+          <tr>
+            <td colspan="10" style="text-align:center; padding:3rem;" class="muted">Loading registrations data...</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+  </main>
+
+  <!-- ==================== TEAM DOSSIER MODAL ==================== -->
+  <div class="modal-overlay" id="dossierModal">
+    <div class="modal-content" style="max-width:850px;">
+      <div class="modal-head">
+        <div>
+          <span class="section-tag" id="dosTeamCode">HACK-27-000-0000</span>
+          <h3 id="dosTeamName" style="color:var(--green-dark); margin:0.2rem 0;">Team Dossier</h3>
+          <p id="dosCollege" class="muted" style="margin:0; font-size:0.92rem;"></p>
+        </div>
+        <button type="button" class="modal-close-btn modal-close-trigger">&times;</button>
+      </div>
+
+      <!-- Dossier Body -->
+      <div style="display:grid; gap:1.5rem;">
+
+        <!-- Review Controls Box (Interactive Auto-Saving) -->
+        <div style="background:var(--blue-pale); border:1.5px solid var(--border); border-radius:var(--radius-md); padding:1.2rem;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.8rem;">
+            <strong style="color:var(--green-dark);">Review Status & Notes</strong>
+            <span id="saveStatusIndicator" class="field-hint ok" style="margin:0;"></span>
+          </div>
+
+          <div class="form-grid" style="grid-template-columns: 240px 1fr; align-items:start;">
+            <div class="field" style="margin:0;">
+              <label>Review Decision</label>
+              <select id="dosReviewStatusSelect">
+                <option value="submitted">Submitted</option>
+                <option value="under_review">Under Review</option>
+                <option value="shortlisted">Shortlisted</option>
+                <option value="waitlist">Waitlist</option>
+                <option value="rejected">Rejected</option>
+              </select>
+            </div>
+            <div class="field" style="margin:0;">
+              <label>Organizer Internal Notes</label>
+              <input type="text" id="dosAdminNotes" placeholder="Add confidential evaluator notes...">
+            </div>
+          </div>
+        </div>
+
+        <!-- Leader Details -->
+        <div class="review-section">
+          <div class="review-section-head">
+            <h4>Team Leader</h4>
+            <span class="mono" id="dosLeaderPhone" style="font-weight:600;">–</span>
+          </div>
+          <div class="review-grid-2">
+            <div><small>Name</small><strong id="dosLeaderName">–</strong></div>
+            <div><small>Email</small><strong id="dosLeaderEmail">–</strong></div>
+            <div><small>Department</small><span id="dosLeaderDept">–</span></div>
+            <div><small>Year of Study</small><span id="dosLeaderYear">–</span></div>
+          </div>
+        </div>
+
+        <!-- Members Table -->
+        <div class="review-section">
+          <div class="review-section-head">
+            <h4>Crew Members Table</h4>
+          </div>
+          <div id="dosMembersList" style="display:grid; gap:0.5rem;"></div>
+        </div>
+
+        <!-- Idea Submission & PPT Download -->
+        <div class="review-section">
+          <div class="review-section-head">
+            <h4>Idea Proposal & Presentation Deck</h4>
+            <a id="dosDownloadFileBtn" class="btn btn-cyan btn-sm" href="#" target="_blank">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Download Presentation File
+            </a>
+          </div>
+          <div style="margin-bottom:1rem;">
+            <small style="font-weight:700; color:var(--green-dark); text-transform:uppercase;">Idea Title</small>
+            <h4 id="dosIdeaTitle" style="color:var(--text); margin-top:0.2rem;">–</h4>
+          </div>
+          <div style="margin-bottom:1rem;">
+            <small style="font-weight:700; color:var(--green-dark); text-transform:uppercase;">Executive Abstract</small>
+            <p id="dosIdeaSummary" class="muted" style="margin-top:0.2rem; font-size:0.92rem;"></p>
+          </div>
+          <div>
+            <small style="font-weight:700; color:var(--green-dark); text-transform:uppercase;">Technical Architecture Scope</small>
+            <p id="dosIdeaDesc" class="muted" style="margin-top:0.2rem; font-size:0.92rem;"></p>
+          </div>
+        </div>
+
+        <!-- Payment & Consent Audit -->
+        <div class="review-grid-2" style="background:#F9FBFB; border:1px solid var(--border); border-radius:var(--radius-md); padding:1.2rem; font-size:0.88rem;">
+          <div><small>Payment Status:</small> <span id="dosPaymentBadge"></span></div>
+          <div><small>Transaction ID:</small> <span id="dosPaymentId" class="mono">–</span></div>
+          <div><small>Razorpay Order ID:</small> <span id="dosOrderId" class="mono">–</span></div>
+          <div><small>Terms Acceptance:</small> Accepted on <span id="dosTermsTime">–</span> (<span id="dosTermsVer">v1</span>)</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/js/common.js"></script>
+  <script>
+    (() => {
+      const { $, $$, el, fmt, DATETIME, getJSON, postJSON, setupModal } = HK;
+      const dossierModal = setupModal("dossierModal");
+      let allRegistrations = [];
+      let currentActiveRegId = null;
+
+      async function checkAuth() {
+        try {
+          const me = await getJSON("/api/admin/me");
+          $("#adminUsername").textContent = me.user;
+        } catch {
+          window.location.href = "/admin/login";
+        }
+      }
+
+      async function loadMetrics() {
+        try {
+          const m = await getJSON("/api/admin/metrics");
+          $("#mTotalTeams").textContent = m.total_teams;
+          $("#mPaidTeams").textContent = m.paid_teams;
+          $("#mPendingTeams").textContent = m.pending_teams;
+          $("#mConfirmedParts").textContent = m.confirmed_participants;
+          $("#mRevenue").textContent = m.total_revenue.toLocaleString("en-IN");
+          $("#mLeads").textContent = m.notify_leads;
+
+          if (m.teams_per_track) {
+            $("#trkSafety").textContent = m.teams_per_track["Human Safety, Rights & Empowerment"] || 0;
+            $("#trkHealth").textContent = m.teams_per_track["Health, Education & Digital Innovation"] || 0;
+            $("#trkSustain").textContent = m.teams_per_track["Sustainability, Smart Communities & Social Entrepreneurship"] || 0;
+          }
+        } catch (e) {
+          console.warn("Metrics load failed:", e);
+        }
+      }
+
+      async function loadRegistrations() {
+        const q = $("#adminSearch").value.trim();
+        const track = $("#filterTrack").value;
+        const review = $("#filterReview").value;
+        const payment = $("#filterPayment").value;
+
+        const params = new URLSearchParams();
+        if (q) params.set("q", q);
+        if (track) params.set("track", track);
+        if (review) params.set("review_status", review);
+        if (payment) params.set("payment_status", payment);
+
+        try {
+          const res = await getJSON(`/api/admin/registrations?${params.toString()}`);
+          allRegistrations = res.registrations;
+          renderTable(allRegistrations);
+        } catch (e) {
+          $("#teamsTableBody").innerHTML = '<tr><td colspan="10" style="text-align:center; color:var(--error); padding:2rem;">Failed to fetch teams.</td></tr>';
+        }
+      }
+
+      function renderTable(regs) {
+        const tbody = $("#teamsTableBody");
+        tbody.replaceChildren();
+
+        if (regs.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="10" style="text-align:center; padding:3rem;" class="muted">No matching team registrations found.</td></tr>';
+          return;
+        }
+
+        regs.forEach((r, idx) => {
+          const tr = document.createElement("tr");
+
+          const pStatus = (r.payment_status || "pending").toLowerCase();
+          const rStatus = (r.review_status || "submitted").toLowerCase();
+
+          tr.innerHTML = `
+            <td class="mono" style="color:var(--text-muted);">${idx + 1}</td>
+            <td class="mono"><strong>${r.team_code}</strong></td>
+            <td><strong>${r.team_name}</strong></td>
+            <td style="max-width:180px; font-size:0.85rem;" class="muted">${r.track}</td>
+            <td>
+              <div><strong>${r.leader_name}</strong></div>
+              <div class="mono" style="font-size:0.82rem; color:var(--text-muted);">${r.leader_phone}</div>
+            </td>
+            <td style="max-width:160px; font-size:0.85rem;" class="muted">${r.college_name}</td>
+            <td class="mono" style="text-align:center;">${r.member_count}</td>
+            <td>
+              <span class="badge-status ${pStatus}">${pStatus.toUpperCase()} (₹${r.amount_paid})</span>
+            </td>
+            <td>
+              <span class="badge-status ${rStatus}">${rStatus.replace("_", " ")}</span>
+            </td>
+            <td style="text-align:right; white-space:nowrap;">
+              <button type="button" class="btn btn-outline btn-sm btn-dossier" data-id="${r.id}" style="padding:0.3rem 0.7rem; font-size:0.82rem;">Dossier</button>
+              <button type="button" class="btn btn-outline btn-sm btn-del" data-id="${r.id}" style="padding:0.3rem 0.6rem; font-size:0.82rem; color:var(--error); border-color:var(--error);">Delete</button>
+            </td>
+          `;
+
+          tbody.appendChild(tr);
+        });
+
+        // Attach listeners
+        tbody.querySelectorAll(".btn-dossier").forEach((b) => {
+          b.addEventListener("click", () => openDossier(b.dataset.id));
+        });
+        tbody.querySelectorAll(".btn-del").forEach((b) => {
+          b.addEventListener("click", () => deleteTeam(b.dataset.id));
+        });
+      }
+
+      async function openDossier(regId) {
+        currentActiveRegId = regId;
+        const reg = allRegistrations.find((x) => x.id === regId);
+        if (!reg) return;
+
+        $("#dosTeamCode").textContent = reg.team_code;
+        $("#dosTeamName").textContent = reg.team_name;
+        $("#dosCollege").textContent = `${reg.college_name} · ${reg.track}`;
+
+        $("#dosReviewStatusSelect").value = reg.review_status || "submitted";
+        $("#dosAdminNotes").value = reg.admin_notes || "";
+        $("#saveStatusIndicator").textContent = "";
+
+        $("#dosLeaderName").textContent = reg.leader_name;
+        $("#dosLeaderEmail").textContent = reg.leader_email;
+        $("#dosLeaderPhone").textContent = reg.leader_phone;
+        $("#dosLeaderDept").textContent = reg.leader_department;
+        $("#dosLeaderYear").textContent = reg.leader_year;
+
+        // Crew
+        const membersDiv = $("#dosMembersList");
+        membersDiv.replaceChildren();
+        const members = reg.members_data || [];
+        if (members.length > 0) {
+          members.forEach((m, i) => {
+            const item = el("div", {
+              style: "display:flex; justify-content:space-between; padding:0.4rem 0.8rem; background:var(--blue-pale); border-radius:6px; font-size:0.88rem;",
+            });
+            item.innerHTML = `
+              <div><strong>#${i + 1} ${m.name}</strong> <span class="muted">(${m.department || "General"} · ${m.year})</span></div>
+              <div class="mono" style="color:var(--text-muted);">${m.mobile} · ${m.email}</div>
+            `;
+            membersDiv.appendChild(item);
+          });
+        }
+
+        $("#dosIdeaTitle").textContent = reg.idea_title;
+        $("#dosIdeaSummary").textContent = reg.idea_summary;
+        $("#dosIdeaDesc").textContent = reg.idea_description;
+
+        const downloadBtn = $("#dosDownloadFileBtn");
+        downloadBtn.href = `/api/admin/registration/${reg.id}/file`;
+
+        const pStatus = (reg.payment_status || "pending").toLowerCase();
+        $("#dosPaymentBadge").innerHTML = `<span class="badge-status ${pStatus}">${pStatus.toUpperCase()} (₹${reg.amount_paid})</span>`;
+        $("#dosPaymentId").textContent = reg.razorpay_payment_id || "N/A";
+        $("#dosOrderId").textContent = reg.razorpay_order_id || "N/A";
+        $("#dosTermsTime").textContent = fmt(reg.terms_accepted_at, DATETIME);
+        $("#dosTermsVer").textContent = reg.terms_version || "v1";
+
+        dossierModal.open();
+      }
+
+      // Auto-save Review Status and Admin Notes
+      let autoSaveTimer = null;
+      function setupAutoSave() {
+        const select = $("#dosReviewStatusSelect");
+        const notes = $("#dosAdminNotes");
+        const statusInd = $("#saveStatusIndicator");
+
+        async function triggerSave() {
+          if (!currentActiveRegId) return;
+          statusInd.textContent = "Saving...";
+          try {
+            await postJSON(`/api/admin/registration/${currentActiveRegId}/status`, {
+              review_status: select.value,
+              admin_notes: notes.value.trim(),
+            });
+            statusInd.textContent = "✓ Saved successfully";
+            // Update in local array
+            const found = allRegistrations.find((r) => r.id === currentActiveRegId);
+            if (found) {
+              found.review_status = select.value;
+              found.admin_notes = notes.value.trim();
+              renderTable(allRegistrations);
+            }
+          } catch {
+            statusInd.textContent = "Error saving";
+          }
+        }
+
+        select.addEventListener("change", triggerSave);
+        notes.addEventListener("input", () => {
+          clearTimeout(autoSaveTimer);
+          autoSaveTimer = setTimeout(triggerSave, 600);
+        });
+      }
+
+      async function deleteTeam(regId) {
+        const reg = allRegistrations.find((r) => r.id === regId);
+        if (!reg) return;
+
+        const confirmed = confirm(`Are you sure you want to PERMANENTLY delete team "${reg.team_name}" (${reg.team_code}) and its uploaded file? This action cannot be undone.`);
+        if (!confirmed) return;
+
+        try {
+          const res = await fetch(`/api/admin/registration/${regId}`, { method: "DELETE" });
+          if (res.ok) {
+            allRegistrations = allRegistrations.filter((r) => r.id !== regId);
+            renderTable(allRegistrations);
+            loadMetrics();
+          } else {
+            alert("Delete failed.");
+          }
+        } catch {
+          alert("Network error deleting registration.");
+        }
+      }
+
+      function setupSearchAndFilters() {
+        let searchTimer = null;
+        $("#adminSearch").addEventListener("input", () => {
+          clearTimeout(searchTimer);
+          searchTimer = setTimeout(loadRegistrations, 250);
+        });
+
+        $("#filterTrack").addEventListener("change", loadRegistrations);
+        $("#filterReview").addEventListener("change", loadRegistrations);
+        $("#filterPayment").addEventListener("change", loadRegistrations);
+
+        $("#btnAdminLogout").addEventListener("click", async () => {
+          await postJSON("/api/admin/logout", {});
+          window.location.href = "/admin/login";
+        });
+      }
+
+      async function init() {
+        await checkAuth();
+        await loadMetrics();
+        await loadRegistrations();
+        setupSearchAndFilters();
+        setupAutoSave();
+      }
+
+      init();
+    })();
+  </script>
+</body>
+</html>

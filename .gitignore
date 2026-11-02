@@ -1,0 +1,10 @@
+.env
+.venv*/
+venv/
+data/
+UI_TEMPLATES/
+__pycache__/
+*.pyc
+.DS_Store
+node_modules/
+*.log

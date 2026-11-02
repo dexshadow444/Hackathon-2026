@@ -1,0 +1,449 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Register Team · JM Vertex Hackathon 2027</title>
+  <meta name="description" content="3-Step Team Registration Wizard for JM Vertex Hackathon 2027. Register crew members, submit your project idea, and pay registration fee securely.">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23147A47'/%3E%3Cpath d='M8 8 L24 24 M24 8 L8 24' stroke='%235BB8E8' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">
+
+  <!-- Fonts & Theme CSS -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="/static/css/theme.css">
+
+  <!-- Razorpay Checkout JS -->
+  <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+</head>
+<body>
+
+  <!-- Navigation -->
+  <header class="nav">
+    <div class="container nav-inner">
+      <a class="brand" href="/">
+        <span class="brand-mark" aria-hidden="true">⚡</span>
+        <span class="brand-text">JM Vertex Hackathon</span>
+      </a>
+      <div style="display:flex; align-items:center; gap:1rem;">
+        <a class="btn btn-outline btn-sm" href="/">← Back to Event Page</a>
+      </div>
+    </div>
+  </header>
+
+  <main class="container" style="padding: 2.5rem 0 5rem;" id="main">
+    <!-- Registration Gate Message (when closed or not open) -->
+    <div id="gateCard" class="glass-panel" style="max-width:620px; margin:3rem auto; text-align:center;" aria-live="polite">
+      <div style="display:inline-block; width:44px; height:44px; border-radius:50%; background:var(--blue-pale); border:3px solid var(--green); border-top-color:transparent; animation:spin 0.7s linear infinite; margin-bottom:1.2rem;"></div>
+      <h3>Checking Registration Window...</h3>
+      <p class="muted">Connecting to secure event services.</p>
+    </div>
+
+    <!-- Wizard Root Container (Active when registration is open) -->
+    <div id="wizardRoot" hidden>
+      <!-- Wizard Progress Header -->
+      <div class="wizard-header">
+        <span class="section-tag">OFFICIAL REGISTRATION</span>
+        <h2>Team Entry Portal</h2>
+        <p class="muted">Complete all 3 steps to secure your team slot. You can navigate back and forth at any time without losing data.</p>
+
+        <div class="wizard-steps-indicator" role="navigation" aria-label="Registration Steps">
+          <div class="wizard-step-node active" id="stepNode1">
+            <div class="wizard-step-num">1</div>
+            <span class="wizard-step-label">Team & Crew</span>
+          </div>
+          <div class="wizard-step-divider"></div>
+          <div class="wizard-step-node" id="stepNode2">
+            <div class="wizard-step-num">2</div>
+            <span class="wizard-step-label">Idea Submission</span>
+          </div>
+          <div class="wizard-step-divider"></div>
+          <div class="wizard-step-node" id="stepNode3">
+            <div class="wizard-step-num">3</div>
+            <span class="wizard-step-label">Review & Pay</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main Form Container -->
+      <form id="wizardForm" novalidate>
+
+        <!-- ==================== STEP 1: TEAM & CREW ==================== -->
+        <div id="stepSection1" class="step-card">
+          <div class="step-title">
+            <div>
+              <h3>Step 1 · Team & Crew Composition</h3>
+              <p class="muted" style="margin:0; font-size:0.92rem;">Team size must be 4 to 6 members (1 Team Leader + 3 to 5 Crew Members).</p>
+            </div>
+            <div class="team-capacity-bar" style="margin:0; padding:0.4rem 1rem;">
+              <span>Team Size:</span>
+              <strong id="liveTeamCount" class="mono" style="margin-left:0.4rem; font-size:1.1rem; color:var(--green-dark);">4 / 6</strong>
+            </div>
+          </div>
+
+          <!-- Team Details -->
+          <h4 style="margin-bottom:1rem; color:var(--green-dark);">1.1 Team Details</h4>
+          <div class="form-grid">
+            <div class="field">
+              <label for="w_team_name">Team Name *</label>
+              <input id="w_team_name" name="team_name" type="text" placeholder="e.g. Apex Cybernetics" required maxlength="128" autocomplete="off">
+              <span class="field-hint" id="hint-team_name">Unique, case-insensitive team identity.</span>
+              <span class="field-error" id="err-team_name"></span>
+            </div>
+
+            <div class="field">
+              <label for="w_college_name">College / Institution Name *</label>
+              <input id="w_college_name" name="college_name" type="text" placeholder="e.g. RV College of Engineering, Bengaluru" required maxlength="256">
+              <span class="field-error" id="err-college_name"></span>
+            </div>
+          </div>
+
+          <div class="field">
+            <label for="w_track">Hackathon Track *</label>
+            <select id="w_track" name="track" required>
+              <option value="">Choose one of the 3 thematic tracks</option>
+              <option value="Human Safety, Rights & Empowerment">Human Safety, Rights & Empowerment</option>
+              <option value="Health, Education & Digital Innovation">Health, Education & Digital Innovation</option>
+              <option value="Sustainability, Smart Communities & Social Entrepreneurship">Sustainability, Smart Communities & Social Entrepreneurship</option>
+            </select>
+            <span class="field-error" id="err-track"></span>
+          </div>
+
+          <!-- Prominent Notice Banner -->
+          <div class="notice-banner" style="margin: 1.8rem 0 2rem;">
+            <h4>
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+              Crucial Communication Notice
+            </h4>
+            <p style="margin:0; font-size:0.92rem; color:var(--green-dark);">
+              All official instructions, keys, track updates, check-in QR codes, and competition announcements will be sent to the <strong>Team Leader's mobile number</strong> and <strong>email ID</strong>.
+            </p>
+          </div>
+
+          <!-- Team Leader Details -->
+          <h4 style="margin-bottom:1rem; color:var(--green-dark);">1.2 Team Leader (Primary Point of Contact)</h4>
+          <div class="form-grid">
+            <div class="field">
+              <label for="w_leader_name">Leader Full Name *</label>
+              <input id="w_leader_name" name="leader_name" type="text" placeholder="e.g. Rahul Sharma" required maxlength="128">
+              <span class="field-error" id="err-leader_name"></span>
+            </div>
+
+            <div class="field">
+              <label for="w_leader_phone">Leader Mobile Number * <small>(10-digit Indian, starting 6–9)</small></label>
+              <input id="w_leader_phone" name="leader_phone" type="tel" placeholder="9876543210" required maxlength="10">
+              <span class="field-error" id="err-leader_phone"></span>
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <div class="field">
+              <label for="w_leader_email">Leader Email Address *</label>
+              <input id="w_leader_email" name="leader_email" type="email" placeholder="rahul@college.edu" required>
+              <span class="field-error" id="err-leader_email"></span>
+            </div>
+
+            <div class="field">
+              <label for="w_leader_dept">Leader Department *</label>
+              <input id="w_leader_dept" name="leader_department" type="text" placeholder="e.g. Computer Science & Engg" required>
+              <span class="field-error" id="err-leader_department"></span>
+            </div>
+          </div>
+
+          <div class="form-grid" style="grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));">
+            <div class="field">
+              <label for="w_leader_year">Year of Study *</label>
+              <select id="w_leader_year" name="leader_year" required>
+                <option value="">Select year</option>
+                <option value="1st Year">1st Year</option>
+                <option value="2nd Year">2nd Year</option>
+                <option value="3rd Year">3rd Year</option>
+                <option value="4th Year">4th Year</option>
+                <option value="Postgraduate">Postgraduate</option>
+              </select>
+              <span class="field-error" id="err-leader_year"></span>
+            </div>
+
+            <div class="field">
+              <label for="w_leader_gender">Gender <small>(Optional)</small></label>
+              <select id="w_leader_gender" name="leader_gender">
+                <option value="">Prefer not to say</option>
+                <option value="Male">Male</option>
+                <option value="Female">Female</option>
+                <option value="Non-binary">Non-binary</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label for="w_leader_id">College ID Number <small>(Optional)</small></label>
+              <input id="w_leader_id" name="leader_id_number" type="text" placeholder="e.g. 1RV22CS099">
+            </div>
+          </div>
+
+          <!-- Crew Members -->
+          <div style="display:flex; justify-content:space-between; align-items:center; margin: 2rem 0 1rem;">
+            <h4 style="margin:0; color:var(--green-dark);">1.3 Crew Members (3 to 5 additional members)</h4>
+            <span class="field-hint" style="margin:0;">Minimum 3 crew members required</span>
+          </div>
+
+          <div id="crewMembersContainer">
+            <!-- Dynamically populated with 3 required member cards initially -->
+          </div>
+
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top:1.5rem;">
+            <button type="button" class="btn btn-outline btn-sm" id="btnAddMember">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+              + Add Team Member (Up to 6 total)
+            </button>
+            <span id="maxCapacityMsg" style="color:var(--text-muted); font-size:0.88rem; font-weight:600;" hidden>Max team capacity reached (6)</span>
+          </div>
+
+          <div style="display:flex; justify-content:flex-end; margin-top: 2.5rem;">
+            <button type="button" class="btn btn-primary btn-lg" id="btnNextStep1">
+              Proceed to Idea Submission →
+            </button>
+          </div>
+        </div>
+
+        <!-- ==================== STEP 2: IDEA SUBMISSION ==================== -->
+        <div id="stepSection2" class="step-card" hidden>
+          <div class="step-title">
+            <div>
+              <h3>Step 2 · Project Idea & Architecture</h3>
+              <p class="muted" style="margin:0; font-size:0.92rem;">Submit your concept, technical feasibility for a 24-hour sprint, and slide presentation.</p>
+            </div>
+            <button type="button" class="btn btn-outline btn-sm" id="btnBackToStep1">← Back to Step 1</button>
+          </div>
+
+          <div class="field">
+            <div style="display:flex; justify-content:space-between; align-items:baseline;">
+              <label for="w_idea_title">Project Idea Title *</label>
+              <span class="char-counter" id="cc_idea_title">0 / 100</span>
+            </div>
+            <input id="w_idea_title" name="idea_title" type="text" placeholder="e.g. NeuroScan: Edge AI for Early Diabetic Retinopathy Triage" required maxlength="100">
+            <span class="field-error" id="err-idea_title"></span>
+          </div>
+
+          <div class="field">
+            <div style="display:flex; justify-content:space-between; align-items:baseline;">
+              <label for="w_idea_summary">Abstract / Summary *</label>
+              <span class="char-counter" id="cc_idea_summary">0 / 10,000</span>
+            </div>
+            <textarea id="w_idea_summary" name="idea_summary" rows="4" placeholder="Brief executive summary of the problem, targeted beneficiaries, and core solution mechanism." required maxlength="10000"></textarea>
+            <span class="field-error" id="err-idea_summary"></span>
+          </div>
+
+          <div class="field">
+            <div style="display:flex; justify-content:space-between; align-items:baseline;">
+              <label for="w_idea_desc">Detailed Technical Description & 24-Hour Prototype Scope *</label>
+              <span class="char-counter" id="cc_idea_desc">0 / 50,000</span>
+            </div>
+            <textarea id="w_idea_desc" name="idea_description" rows="7" placeholder="Detail your proposed system architecture, hardware/software tech stack, API requirements, and realistic milestones to complete within the 24-hour hackathon duration." required maxlength="50000"></textarea>
+            <span class="field-error" id="err-idea_description"></span>
+          </div>
+
+          <!-- File Upload Zone -->
+          <div class="field" style="margin-top:2rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem;">
+              <label style="margin:0;">Idea Presentation Deck * <small>(.pptx, .ppt, or .pdf · Max 10 MB)</small></label>
+              <a class="btn btn-outline btn-sm" href="/download/idea-template" download>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                Download Presentation Template
+              </a>
+            </div>
+
+            <div class="upload-dropzone" id="dropzone">
+              <svg class="upload-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              <p style="font-weight:600; font-size:1.05rem; margin-bottom:0.3rem;">Drag & drop your presentation file here</p>
+              <p class="muted" style="font-size:0.88rem; margin-bottom:1rem;">Supports PPTX, PPT, or PDF up to 10 MB</p>
+              <button type="button" class="btn btn-primary btn-sm" id="btnBrowseFile">Select File from Computer</button>
+              <input type="file" id="w_idea_file" name="idea_presentation" accept=".pptx,.ppt,.pdf" hidden>
+            </div>
+
+            <div class="file-selected-box" id="fileSelectedBox" hidden>
+              <div class="file-details">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+                <div>
+                  <div id="selectedFileName">filename.pptx</div>
+                  <small id="selectedFileSize" class="muted">2.4 MB</small>
+                </div>
+              </div>
+              <button type="button" class="btn-remove-member" id="btnRemoveFile">Remove File</button>
+            </div>
+            <span class="field-error" id="err-idea_presentation"></span>
+          </div>
+
+          <div style="display:flex; justify-content:space-between; margin-top:2.5rem;">
+            <button type="button" class="btn btn-outline" id="btnBackToStep1_bottom">← Back to Step 1</button>
+            <button type="button" class="btn btn-primary btn-lg" id="btnNextStep2">Review & Proceed to Payment →</button>
+          </div>
+        </div>
+
+        <!-- ==================== STEP 3: REVIEW & PAYMENT ==================== -->
+        <div id="stepSection3" class="step-card" hidden>
+          <div class="step-title">
+            <div>
+              <h3>Step 3 · Review Team Entry & Confirm</h3>
+              <p class="muted" style="margin:0; font-size:0.92rem;">Review your entered information. Click "Edit" on any section if corrections are needed.</p>
+            </div>
+            <button type="button" class="btn btn-outline btn-sm" id="btnBackToStep2">← Back to Step 2</button>
+          </div>
+
+          <!-- Review: Team Details -->
+          <div class="review-section">
+            <div class="review-section-head">
+              <h4>Team & Track Information</h4>
+              <span class="review-edit-btn" id="editLinkTeam">Edit Team Details</span>
+            </div>
+            <div class="review-grid-2">
+              <div class="review-item"><small>Team Name</small><strong id="revTeamName">–</strong></div>
+              <div class="review-item"><small>Institution / College</small><strong id="revCollege">–</strong></div>
+              <div class="review-item" style="grid-column: 1 / -1;"><small>Hackathon Track</small><strong id="revTrack">–</strong></div>
+            </div>
+          </div>
+
+          <!-- Review: Leader Details -->
+          <div class="review-section">
+            <div class="review-section-head">
+              <h4>Team Leader</h4>
+              <span class="review-edit-btn" id="editLinkLeader">Edit Leader Details</span>
+            </div>
+            <div class="review-grid-2">
+              <div class="review-item"><small>Full Name</small><strong id="revLeaderName">–</strong></div>
+              <div class="review-item"><small>Mobile Number</small><strong id="revLeaderPhone" class="mono">–</strong></div>
+              <div class="review-item"><small>Email Address</small><strong id="revLeaderEmail">–</strong></div>
+              <div class="review-item"><small>Department & Year</small><strong id="revLeaderDeptYear">–</strong></div>
+            </div>
+          </div>
+
+          <!-- Review: Crew List -->
+          <div class="review-section">
+            <div class="review-section-head">
+              <h4>Crew Members (<span id="revCrewCount">3</span> members)</h4>
+              <span class="review-edit-btn" id="editLinkCrew">Edit Crew Members</span>
+            </div>
+            <div id="revCrewList" style="display:grid; gap:0.6rem;"></div>
+          </div>
+
+          <!-- Review: Idea Submission -->
+          <div class="review-section">
+            <div class="review-section-head">
+              <h4>Project Submission</h4>
+              <span class="review-edit-btn" id="editLinkIdea">Edit Project Details</span>
+            </div>
+            <div style="display:grid; gap:0.8rem;">
+              <div class="review-item"><small>Idea Title</small><strong id="revIdeaTitle">–</strong></div>
+              <div class="review-item"><small>Executive Abstract</small><p id="revIdeaSummary" class="muted" style="margin:0.2rem 0 0; font-size:0.92rem;"></p></div>
+              <div class="review-item"><small>Presentation File</small><strong id="revFileName" style="color:var(--green-dark);">–</strong></div>
+            </div>
+          </div>
+
+          <!-- Fee Summary Card -->
+          <div class="glass-panel" style="background:var(--blue-pale); border:1.5px solid var(--border); margin: 2rem 0 1.5rem;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div>
+                <small style="font-family:var(--font-heading); font-size:0.85rem; font-weight:700; text-transform:uppercase; color:var(--text-muted);">Total Registration Fee</small>
+                <div style="font-family:var(--font-mono); font-size:2.2rem; font-weight:800; color:var(--green-dark);">₹500 <span style="font-size:0.9rem; font-weight:500; color:var(--text-muted);">/ flat per team</span></div>
+              </div>
+              <span class="badge-status paid">ONE-TIME FEE</span>
+            </div>
+          </div>
+
+          <!-- Terms & Conditions Consent Card (Mandatory Section 6) -->
+          <div class="terms-card">
+            <label class="terms-label" for="w_terms_accepted">
+              <input type="checkbox" id="w_terms_accepted" name="terms_accepted" class="terms-checkbox">
+              <span>
+                I confirm that I am authorised to register on behalf of my team and that all team members have read and agree to the <a href="javascript:void(0)" class="terms-link" id="btnOpenTermsModal">Terms & Conditions</a>. I understand and agree that JM Vertex Technologies may use, adapt and build upon the ideas, presentations and prototypes submitted through this registration for its research and development purposes.
+              </span>
+            </label>
+            <span class="field-error" id="err-terms_accepted" style="margin-left: 2.2rem;"></span>
+          </div>
+
+          <!-- Action Button Row -->
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-top: 2rem;">
+            <button type="button" class="btn btn-outline" id="btnBackToStep2_bottom">← Back to Step 2</button>
+            <button type="submit" class="btn btn-primary btn-lg" id="btnSubmitPayment" disabled>
+              Pay ₹500 & Complete Registration 💳
+            </button>
+          </div>
+        </div>
+
+      </form>
+    </div>
+  </main>
+
+  <!-- ==================== TERMS & CONDITIONS MODAL POPUP ==================== -->
+  <div class="modal-overlay" id="termsModal">
+    <div class="modal-content">
+      <div class="modal-head">
+        <h3>Terms & Conditions · JM Vertex Hackathon 2027</h3>
+        <button type="button" class="modal-close-btn modal-close-trigger">&times;</button>
+      </div>
+      <div style="font-size:0.95rem; line-height:1.6; color:var(--text);">
+        <p><strong>Version: v1 (Active)</strong></p>
+        <ol style="padding-left:1.4rem; display:grid; gap:1.2rem; margin-top:1rem;">
+          <li>
+            <strong>Originality & Third-Party Rights:</strong>
+            Teams confirm the submitted idea is their own original work and does not infringe upon any third-party intellectual property or rights.
+          </li>
+          <li>
+            <strong>R&D and Adaptation Rights:</strong>
+            Teams grant JM Vertex Technologies the right to use, adapt and build upon submitted ideas, presentations and prototypes for its research and development purposes.
+          </li>
+          <li>
+            <strong>Data Privacy:</strong>
+            Team contact details are strictly used only for official communication regarding the hackathon, logistical arrangements, and event scheduling.
+          </li>
+          <li>
+            <strong>Registration Fee & Refunds:</strong>
+            The registration fee is a flat ₹500 per team. Refund conditions are governed strictly as stated by the organisers, and fees are non-refundable once team review begins.
+          </li>
+          <li>
+            <strong>Schedule & Rule Amendments:</strong>
+            Organisers reserve the right to amend the competition schedule or track criteria by informing the Team Leader's registered email address and mobile number.
+          </li>
+        </ol>
+      </div>
+      <div style="margin-top:2rem; text-align:right;">
+        <button type="button" class="btn btn-primary btn-sm modal-close-trigger">I Understand</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== SANDBOX PAYMENT SIMULATOR MODAL ==================== -->
+  <div class="modal-overlay" id="sandboxModal">
+    <div class="modal-content" style="max-width:520px; text-align:center;">
+      <div style="width:54px; height:54px; border-radius:50%; background:var(--blue-pale); border:2px solid var(--blue); display:grid; place-items:center; margin:0 auto 1rem; color:var(--blue);">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+      </div>
+      <h3>Development Payment Simulator</h3>
+      <p class="muted" style="font-size:0.92rem; margin-bottom:1.5rem;">
+        Razorpay test keys are in development sandbox mode. You can simulate an instantaneous verified payment or simulate a failed checkout attempt.
+      </p>
+
+      <div style="background:var(--blue-pale); padding:1rem; border-radius:var(--radius-md); margin-bottom:1.5rem; text-align:left;">
+        <div style="display:flex; justify-content:space-between; margin-bottom:0.4rem;">
+          <small class="muted">Order Reference:</small>
+          <strong id="sbxOrderId" class="mono">–</strong>
+        </div>
+        <div style="display:flex; justify-content:space-between;">
+          <small class="muted">Amount Payable:</small>
+          <strong style="color:var(--green-dark);">₹500.00</strong>
+        </div>
+      </div>
+
+      <div style="display:flex; gap:1rem; justify-content:center;">
+        <button type="button" class="btn btn-outline btn-sm modal-close-trigger" id="btnSimulateFail">Simulate Failure / Close</button>
+        <button type="button" class="btn btn-primary btn-sm" id="btnSimulateSuccess">Simulate Successful Payment ✓</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Wizard Engine Script -->
+  <script src="/static/js/common.js"></script>
+  <script src="/static/js/register-wizard.js"></script>
+</body>
+</html>

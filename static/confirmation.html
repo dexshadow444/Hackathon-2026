@@ -1,0 +1,208 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Registration Confirmed · JM Vertex Hackathon 2027</title>
+  <meta name="description" content="Official Team Pass and Payment Receipt for JM Vertex Hackathon 2027.">
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23147A47'/%3E%3Cpath d='M8 8 L24 24 M24 8 L8 24' stroke='%235BB8E8' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">
+
+  <!-- Fonts & Theme CSS -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="/static/css/theme.css">
+</head>
+<body style="background: linear-gradient(180deg, #FFFFFF 0%, var(--blue-pale) 100%); min-height:100vh;">
+
+  <!-- Navigation -->
+  <header class="nav no-print">
+    <div class="container nav-inner">
+      <a class="brand" href="/">
+        <span class="brand-mark" aria-hidden="true">⚡</span>
+        <span class="brand-text">JM Vertex Hackathon</span>
+      </a>
+      <div style="display:flex; gap:0.8rem;">
+        <a class="btn btn-outline btn-sm" href="/">Event Homepage</a>
+        <button type="button" class="btn btn-primary btn-sm" onclick="window.print()">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          Print / Save as PDF
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <main class="container ticket-wrapper" id="main">
+    <!-- Loading State -->
+    <div id="loadingBox" class="glass-panel" style="text-align:center; padding:3rem;" aria-live="polite">
+      <div style="display:inline-block; width:40px; height:40px; border-radius:50%; border:3px solid var(--green); border-top-color:transparent; animation:spin 0.7s linear infinite; margin-bottom:1rem;"></div>
+      <h3>Retrieving Your Hackathon Pass...</h3>
+      <p class="muted">Verifying team credentials and payment receipt.</p>
+    </div>
+
+    <!-- Error State (Invalid Code) -->
+    <div id="errorBox" class="glass-panel" style="text-align:center; padding:3rem;" hidden>
+      <h2 style="color:var(--error);">Team Pass Not Found</h2>
+      <p class="muted" style="margin:1rem 0 1.5rem;">The requested team registration code is invalid or does not exist.</p>
+      <a class="btn btn-primary" href="/">Return to Homepage</a>
+    </div>
+
+    <!-- Confirmed Boarding Pass Ticket -->
+    <div id="ticketCard" class="boarding-pass" hidden>
+      <!-- Header -->
+      <div class="boarding-header">
+        <div>
+          <div style="display:flex; align-items:center; gap:0.6rem; font-family:var(--font-heading); font-size:1.3rem; font-weight:800; letter-spacing:-0.02em;">
+            <span>⚡ JM Vertex Technologies</span>
+          </div>
+          <p style="margin:0.2rem 0 0; opacity:0.85; font-size:0.92rem;">Hackathon 2027 · Official Team Access Pass</p>
+        </div>
+        <div style="text-align:right;">
+          <small style="text-transform:uppercase; font-size:0.75rem; letter-spacing:0.08em; opacity:0.85; display:block;">Team Code</small>
+          <div class="boarding-code-badge" id="tTeamCode">HACK-27-000-0000</div>
+        </div>
+      </div>
+
+      <!-- Ticket Body Details -->
+      <div class="boarding-body">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1.8rem; border-bottom:1px solid var(--border-light); padding-bottom:1.5rem;">
+          <div>
+            <span class="section-tag">CONFIRMED TEAM</span>
+            <h2 id="tTeamName" style="color:var(--green-dark); margin:0.2rem 0 0.4rem;">Team Name</h2>
+            <p id="tCollege" class="muted" style="margin:0; font-weight:500;">Institution Name</p>
+          </div>
+          <div style="text-align:right;">
+            <span class="badge-status paid" id="tPaymentBadge" style="font-size:0.88rem; padding:0.4rem 1rem;">PAID & VERIFIED</span>
+          </div>
+        </div>
+
+        <!-- 3-Column Highlights -->
+        <div class="review-grid-2" style="margin-bottom:1.8rem;">
+          <div class="review-item">
+            <small>Track Assigned</small>
+            <strong id="tTrack" style="color:var(--green-dark);">–</strong>
+          </div>
+          <div class="review-item">
+            <small>Team Size</small>
+            <strong id="tMemberCount">– members</strong>
+          </div>
+        </div>
+
+        <!-- Leader Details -->
+        <div class="review-section" style="margin-bottom:1.5rem; background:var(--blue-pale);">
+          <div style="display:flex; justify-content:space-between; margin-bottom:0.6rem;">
+            <small style="font-weight:700; color:var(--green-dark); text-transform:uppercase;">Team Leader</small>
+            <span class="mono" id="tLeaderPhone" style="font-size:0.88rem; font-weight:600;">–</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; align-items:baseline;">
+            <strong id="tLeaderName" style="font-size:1.1rem; color:var(--text);">–</strong>
+            <span id="tLeaderEmail" class="muted" style="font-size:0.9rem;">–</span>
+          </div>
+          <div id="tLeaderDept" class="muted" style="font-size:0.85rem; margin-top:0.2rem;">–</div>
+        </div>
+
+        <!-- Members Table -->
+        <div style="margin-bottom:1.8rem;">
+          <h4 style="margin-bottom:0.8rem; color:var(--green-dark);">Crew Members</h4>
+          <div id="tMembersTable" style="display:grid; gap:0.5rem;">
+            <!-- Dynamically populated -->
+          </div>
+        </div>
+
+        <!-- Idea Summary -->
+        <div class="review-section" style="margin-bottom:1.8rem;">
+          <small style="font-weight:700; color:var(--green-dark); text-transform:uppercase;">Submitted Idea Title</small>
+          <div id="tIdeaTitle" style="font-size:1.05rem; font-weight:700; margin:0.3rem 0; color:var(--text);">–</div>
+          <div style="display:flex; align-items:center; gap:0.5rem; font-size:0.88rem; color:var(--text-muted); margin-top:0.4rem;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+            <span>Deck: <strong id="tFileName">–</strong></span>
+          </div>
+        </div>
+
+        <!-- Payment & Audit Receipt -->
+        <div class="review-grid-2" style="background:#F9FBFB; border:1px solid var(--border); border-radius:var(--radius-md); padding:1.2rem; font-size:0.88rem;">
+          <div><small>Amount Paid:</small> <strong style="color:var(--green-dark);">₹<span id="tAmountPaid">500</span>.00 INR</strong></div>
+          <div><small>Transaction ID:</small> <span id="tPaymentId" class="mono">–</span></div>
+          <div><small>Payment Timestamp:</small> <span id="tPaymentTime">–</span></div>
+          <div><small>Terms Accepted:</small> <span id="tTermsAccepted">–</span> (Version: <span id="tTermsVersion">v1</span>)</div>
+        </div>
+      </div>
+
+      <!-- Holographic Barcode Strip -->
+      <div class="ticket-barcode-strip">
+        <div>
+          <div class="barcode-lines" aria-hidden="true"></div>
+          <small class="mono" style="font-size:0.75rem; letter-spacing:0.1em; color:var(--text-muted); margin-top:0.3rem; display:block;">AUTH VALIDATED · 2027 SPRINT</small>
+        </div>
+        <div style="text-align:right;">
+          <div style="display:inline-block; padding:0.5rem; background:#fff; border:1px solid var(--border); border-radius:8px;">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--green-dark);"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script src="/static/js/common.js"></script>
+  <script>
+    (async () => {
+      const { $, el, fmt, DATETIME, getJSON } = HK;
+      const pathParts = window.location.pathname.split("/");
+      const teamCode = pathParts[pathParts.length - 1];
+
+      if (!teamCode || teamCode === "confirmation") {
+        $("#loadingBox").hidden = true;
+        $("#errorBox").hidden = false;
+        return;
+      }
+
+      try {
+        const reg = await getJSON(`/api/registration/${encodeURIComponent(teamCode)}`);
+        document.title = `Pass: ${reg.team_code} · ${reg.team_name}`;
+
+        $("#tTeamCode").textContent = reg.team_code;
+        $("#tTeamName").textContent = reg.team_name;
+        $("#tCollege").textContent = reg.college_name;
+        $("#tTrack").textContent = reg.track;
+        $("#tMemberCount").textContent = `${reg.member_count} Members`;
+
+        $("#tLeaderName").textContent = reg.leader_name;
+        $("#tLeaderPhone").textContent = reg.leader_phone;
+        $("#tLeaderEmail").textContent = reg.leader_email;
+        $("#tLeaderDept").textContent = `${reg.leader_department} · ${reg.leader_year}`;
+
+        // Crew
+        const membersWrap = $("#tMembersTable");
+        membersWrap.replaceChildren();
+        if (reg.members && reg.members.length > 0) {
+          reg.members.forEach((m, idx) => {
+            const row = el("div", {
+              style: "display:flex; justify-content:space-between; padding:0.5rem 0.8rem; background:var(--blue-pale); border-radius:8px; font-size:0.9rem;",
+            });
+            row.innerHTML = `
+              <div><strong>#${idx + 1} ${m.name}</strong> <span class="muted">(${m.department || "General"} · ${m.year})</span></div>
+              <div class="mono" style="color:var(--text-muted);">${m.mobile} · ${m.email}</div>
+            `;
+            membersWrap.appendChild(row);
+          });
+        }
+
+        $("#tIdeaTitle").textContent = reg.idea_title;
+        $("#tFileName").textContent = reg.idea_ppt_filename || "presentation.pptx";
+        $("#tAmountPaid").textContent = reg.amount_paid || "500";
+        $("#tPaymentId").textContent = reg.payment_id || "OFFLINE_TEST";
+        $("#tPaymentTime").textContent = fmt(reg.payment_timestamp, DATETIME);
+        $("#tTermsAccepted").textContent = fmt(reg.terms_accepted_at, DATETIME);
+        $("#tTermsVersion").textContent = reg.terms_version || "v1";
+
+        $("#loadingBox").hidden = true;
+        $("#ticketCard").hidden = false;
+      } catch (err) {
+        $("#loadingBox").hidden = true;
+        $("#errorBox").hidden = false;
+      }
+    })();
+  </script>
+</body>
+</html>
