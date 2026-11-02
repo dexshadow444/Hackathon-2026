@@ -181,4 +181,6 @@ def sitemap_xml(request: Request):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("app.main:app", host=settings.HOST, port=settings.PORT, reload=not settings.is_production)
+    # Pass app object directly to eliminate Windows multiprocessing spawn overhead
+    # and avoid file watchers scanning heavy UI_TEMPLATES and .venv directories
+    uvicorn.run(app, host=settings.HOST, port=settings.PORT)
