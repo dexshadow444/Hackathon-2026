@@ -9,10 +9,10 @@
 
 | Route | Type | Description |
 |---|---|---|
-| `/` | Page | **Futuristic Landing Page** with interactive preloader, live countdown pass, 3 tracks, timeline, live team counter, FAQ accordion, and pre-registration alerts. |
+| `/` | Page | **JM Vertex Landing Page** with live countdown pass, four tracks, timeline, live team counter, FAQ accordion, and pre-registration alerts. |
 | `/register` | Page | **3-Step Registration Wizard** (Team & Crew composition, Idea Submission with live char counters & PPT upload, Review & Payment with mandatory Terms consent). |
 | `/terms` | Page | **Full Terms & Conditions** detailing IP ownership, R&D rights, data privacy, and refund policies. |
-| `/confirmation/{team_code}` | Page | **Official Team Access Pass & Payment Receipt** with futuristic boarding pass design, barcode/QR visual, and Print/Save as PDF. |
+| `/confirmation/{team_code}` | Page | **Official Team Access Pass & Payment Receipt** with a printable ticket layout, barcode/QR visual, and Print/Save as PDF. |
 | `/admin/login` | Page | **Minimal, Secure Admin Authentication Portal** (hashed credential verification & session cookies). |
 | `/admin` | Page | **Minimal Admin Command Center** with 6 metrics cards, live search, multi-filters (track, review status, payment status), team dossier modal with instant auto-saving status/notes, and 1-click Excel/CSV export. |
 | `/download/idea-template` | File | Serves the official 5-slide PowerPoint deck template (`.pptx`). |

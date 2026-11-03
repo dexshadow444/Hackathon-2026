@@ -66,6 +66,7 @@
         <span>Health & Digital: <strong id="trkHealth" class="mono">0</strong></span>
         <span>•</span>
         <span>Sustainability & Smart: <strong id="trkSustain" class="mono">0</strong></span>
+        <span>AI Hospitality & Management: <strong id="trkHospitality" class="mono">0</strong></span>
       </div>
     </div>
 
@@ -79,6 +80,7 @@
           <option value="Human Safety, Rights & Empowerment">Human Safety & Empowerment</option>
           <option value="Health, Education & Digital Innovation">Health & Digital Innovation</option>
           <option value="Sustainability, Smart Communities & Social Entrepreneurship">Sustainability & Smart Communities</option>
+          <option value="AI in Hospitality and Management">AI in Hospitality & Management</option>
         </select>
 
         <select id="filterReview" style="padding:0.6rem 0.9rem; border:1.5px solid var(--border); border-radius:var(--radius-sm); font-size:0.9rem;">
@@ -260,6 +262,7 @@
             $("#trkSafety").textContent = m.teams_per_track["Human Safety, Rights & Empowerment"] || 0;
             $("#trkHealth").textContent = m.teams_per_track["Health, Education & Digital Innovation"] || 0;
             $("#trkSustain").textContent = m.teams_per_track["Sustainability, Smart Communities & Social Entrepreneurship"] || 0;
+            $("#trkHospitality").textContent = m.teams_per_track["AI in Hospitality and Management"] || 0;
           }
         } catch (e) {
           console.warn("Metrics load failed:", e);
@@ -474,5 +477,6 @@
       init();
     })();
   </script>
+  <script src="/static/js/visual-effects.js"></script>
 </body>
 </html>

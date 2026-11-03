@@ -7,6 +7,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+from . import content
 from .config import settings
 
 log = logging.getLogger("hackathon.db")
@@ -527,11 +528,7 @@ class Repository:
         # Teams per track
         cur.execute("SELECT track, COUNT(*) FROM registrations GROUP BY track")
         track_rows = cur.fetchall()
-        teams_per_track = {t: 0 for t in [
-            "Human Safety, Rights & Empowerment",
-            "Health, Education & Digital Innovation",
-            "Sustainability, Smart Communities & Social Entrepreneurship"
-        ]}
+        teams_per_track = {t: 0 for t in content.TRACKS}
         for row in track_rows:
             if row[0] in teams_per_track:
                 teams_per_track[row[0]] = row[1]

@@ -66,8 +66,11 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="/static/css/theme.css">
+
+  <!-- Three.js CDN for Award-Winning 3D WebGL Interactions -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
-<body id="top">
+<body id="top" class="landing-page">
 
   <!-- ==================== FUTURISTIC PRELOADER ==================== -->
   <div id="preloader" aria-hidden="true">
@@ -123,24 +126,39 @@
         <a href="#fee">Fee</a>
         <a href="#faq">FAQ</a>
         <a href="#contact">Contact</a>
+        <button type="button" class="btn-sound-toggle" id="soundToggleBtn" aria-label="Toggle Cyber Sound Effects" title="Enable Cyber Audio">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+        </button>
         <a class="btn btn-primary btn-sm" href="/register">Register Team</a>
-        <a class="btn btn-outline btn-sm" href="/admin/login" style="margin-left:0.3rem">Admin</a>
+        <a class="btn btn-outline btn-sm" href="/admin/login" style="margin-left:0.2rem">Admin</a>
       </nav>
     </div>
   </header>
 
   <!-- ==================== MAIN CONTENT ==================== -->
   <main id="main">
-    <!-- Hero Section -->
+    <!-- Hero Section with 3D WebGL Canvas -->
     <section class="hero">
+      <!-- 3D Three.js Interactive Container -->
+      <div id="hero3dContainer" aria-hidden="true"></div>
+
       <div class="container hero-grid">
         <div>
           <div class="hero-badge">
-            <span class="hero-badge-dot"></span>
+            <span class="status-dot-pulse"></span>
             <span>24-HOUR PROTOTYPE SPRINT · SINGLE ROUND</span>
           </div>
+
           <h1 id="heroTitle">JM Vertex <span class="hero-title-accent">Hackathon 2027</span></h1>
           <p class="lead" id="tagline">Turn a real-world problem into a working prototype in 24 hours.</p>
+
+          <!-- Floating 3D HUD Chips -->
+          <div class="hero-hud-strip">
+            <span class="hud-chip">⚡ 24h Non-Stop Sprint</span>
+            <span class="hud-chip">🛡️ Single Round Challenge</span>
+            <span class="hud-chip">💎 Flat ₹500 / Team</span>
+            <span class="hud-chip">👥 4–6 Innovators</span>
+          </div>
 
           <div class="hero-meta">
             <span>
@@ -158,48 +176,58 @@
           </div>
 
           <div class="cta-row">
-            <a class="btn btn-primary btn-lg" href="/register">Register Now</a>
+            <a class="btn btn-primary btn-lg" href="/register">Register Now 🚀</a>
             <a class="btn btn-outline" href="#tracks">Explore Tracks</a>
             <a class="btn btn-outline" href="/download/idea-template">Download PPT Template</a>
           </div>
 
           <div class="live-count-badge" aria-live="polite">
             <span class="live-count-num" id="teamCount">0</span>
-            <span>teams registered and confirmed so far</span>
+            <span>teams registered and verified so far</span>
           </div>
         </div>
 
-        <!-- Futuristic Ticket Countdown Card -->
-        <div class="ticket-card" aria-label="Registration countdown">
-          <div class="ticket-top">
-            <div class="ticket-header-row">
-              <span class="ticket-tag">HACKATHON PASS</span>
-              <span class="ticket-status-label" id="cdLabel">Countdown</span>
+        <!-- 3D Countdown Pass Card with Perspective Tilt -->
+        <div class="ticket-stage" role="group" aria-label="Registration countdown">
+          <div class="ticket-card">
+            <div class="ticket-top">
+              <div class="ticket-header-row">
+                <span class="ticket-tag">HACKATHON PASS</span>
+                <span class="ticket-status-label" id="cdLabel">Countdown</span>
+              </div>
+              <div id="cdWrap" class="countdown-grid" role="timer">
+                <div class="cd-box"><b id="cdD">--</b><small>Days</small></div>
+                <div class="cd-box"><b id="cdH">--</b><small>Hours</small></div>
+                <div class="cd-box"><b id="cdM">--</b><small>Mins</small></div>
+                <div class="cd-box"><b id="cdS">--</b><small>Secs</small></div>
+              </div>
+              <div id="cdClosed" class="cd-closed-banner" hidden>Registration Window Closed</div>
             </div>
-            <div id="cdWrap" class="countdown-grid" role="timer">
-              <div class="cd-box"><b id="cdD">--</b><small>Days</small></div>
-              <div class="cd-box"><b id="cdH">--</b><small>Hours</small></div>
-              <div class="cd-box"><b id="cdM">--</b><small>Mins</small></div>
-              <div class="cd-box"><b id="cdS">--</b><small>Secs</small></div>
+
+            <div class="ticket-tear">
+              <div class="ticket-notch-left"></div>
+              <div class="ticket-tear-line"></div>
+              <div class="ticket-notch-right"></div>
             </div>
-            <div id="cdClosed" class="cd-closed-banner" hidden>Registration Window Closed</div>
-          </div>
 
-          <div class="ticket-tear">
-            <div class="ticket-notch-left"></div>
-            <div class="ticket-tear-line"></div>
-            <div class="ticket-notch-right"></div>
-          </div>
-
-          <div class="ticket-bottom">
-            <div class="ticket-fact"><small>Registration Fee</small><strong id="factFee">₹500 per team</strong></div>
-            <div class="ticket-fact"><small>Team Capacity</small><strong id="factTeam">4 to 6 members</strong></div>
-            <div class="ticket-fact"><small>Competition Format</small><strong>Single Round</strong></div>
-            <div class="ticket-fact"><small>Registration Closes</small><strong id="factDeadline">20 Dec 2026</strong></div>
+            <div class="ticket-bottom">
+              <div class="ticket-fact"><small>Registration Fee</small><strong id="factFee">₹500 per team</strong></div>
+              <div class="ticket-fact"><small>Team Capacity</small><strong id="factTeam">4 to 6 members</strong></div>
+              <div class="ticket-fact"><small>Competition Format</small><strong>Single Round</strong></div>
+              <div class="ticket-fact"><small>Registration Closes</small><strong id="factDeadline">20 Dec 2026</strong></div>
+            </div>
           </div>
         </div>
       </div>
     </section>
+
+    <!-- Cyber Marquee Infini-Scroll Ticker -->
+    <div class="marquee-wrap" aria-hidden="true">
+      <div class="marquee-track">
+        <div class="marquee-item"><span>⚡ 24-HOUR PROTOTYPE SPRINT</span><span class="marquee-dot">◆</span><span>4 THEMATIC DOMAINS</span><span class="marquee-dot">◆</span><span>FLAT ₹500 TEAM ENTRY</span><span class="marquee-dot">◆</span><span>DIRECT INDUSTRY JURY EVALUATION</span><span class="marquee-dot">◆</span><span>INCUBATION OPPORTUNITIES</span><span class="marquee-dot">◆</span></div>
+        <div class="marquee-item"><span>⚡ 24-HOUR PROTOTYPE SPRINT</span><span class="marquee-dot">◆</span><span>4 THEMATIC DOMAINS</span><span class="marquee-dot">◆</span><span>FLAT ₹500 TEAM ENTRY</span><span class="marquee-dot">◆</span><span>DIRECT INDUSTRY JURY EVALUATION</span><span class="marquee-dot">◆</span><span>INCUBATION OPPORTUNITIES</span><span class="marquee-dot">◆</span></div>
+      </div>
+    </div>
 
     <!-- About Section -->
     <section id="about" class="section-alt">
@@ -207,18 +235,18 @@
         <div>
           <span class="section-tag">OVERVIEW</span>
           <h2>Build What Truly Matters</h2>
-          <div id="aboutText" style="margin-top:1.2rem; font-size:1.05rem; color:var(--text-muted);">
+          <div id="aboutText" style="margin-top:1.2rem; font-size:1.08rem; color:var(--text-muted);">
             <p>Bring your team of four to six and solve a problem that matters to people. You submit your idea first, then build a prototype during the 24-hour hackathon.</p>
             <p>There is a single round. Every update, instruction and announcement goes to your Team Leader's mobile number and email, so make sure both are correct when you register.</p>
           </div>
         </div>
 
-        <aside class="notice-banner" role="note">
-          <h4>
+        <aside class="notice-banner glass-panel" role="note" style="border-left: 6px solid var(--green);">
+          <h4 style="color:var(--green-dark); margin-bottom:0.5rem; display:flex; align-items:center; gap:0.6rem;">
             <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
             Leader Contact Precision Notice
           </h4>
-          <p style="margin:0.5rem 0 0; font-size:0.94rem; color:var(--green-dark);">
+          <p style="margin:0; font-size:0.95rem; color:var(--green-dark); line-height:1.6;">
             All official team credentials, access keys, track guidelines, and hackathon schedules will be dispatched directly to the <strong>Team Leader's mobile number</strong> and <strong>email ID</strong>. Please ensure 100% accuracy during submission.
           </p>
         </aside>
@@ -226,11 +254,11 @@
     </section>
 
     <!-- Thematic Tracks Section -->
-    <section id="tracks">
+    <section id="tracks" class="section-dark">
       <div class="container">
         <div class="section-head">
           <span class="section-tag">CHALLENGE DOMAINS</span>
-          <h2>Three Pillars of Innovation</h2>
+          <h2>Four Pillars of Innovation</h2>
           <p class="muted">Select one thematic track for your team's proposal. Build practical hardware or software solutions that make a measurable impact.</p>
         </div>
 
@@ -249,6 +277,11 @@
             <span class="track-number">TRACK 03</span>
             <h3>Sustainability, Smart Communities & Social Entrepreneurship</h3>
             <p class="muted">Clean renewable microgrids, waste lifecycle tracking, sustainable agriculture IoT, decentralized circular economies, and urban resilience systems.</p>
+          </div>
+          <div class="track-card">
+            <span class="track-number">TRACK 04</span>
+            <h3>AI in Hospitality and Management</h3>
+            <p class="muted">Practical AI for guest experiences, demand forecasting, smart reservations, service workflows, and efficient hotel or venue operations.</p>
           </div>
         </div>
       </div>
@@ -293,10 +326,10 @@
             <h3>Registration Fee</h3>
             <div class="fee-display" id="feeAmount">₹500</div>
             <p class="muted">Flat ₹500 fee covers the entire team (4 to 6 members). Includes access to hackathon mentorship, computing resources, certificates, and jury evaluation.</p>
-            <a class="btn btn-primary" href="/register">Proceed to Register</a>
+            <a class="btn btn-primary" href="/register">Proceed to Register →</a>
           </div>
 
-          <div class="glass-panel" style="background: linear-gradient(135deg, var(--white) 0%, var(--green-tint) 100%);">
+          <div class="glass-panel" style="background: linear-gradient(135deg, rgba(255,255,255,0.92) 0%, rgba(227, 243, 252, 0.8) 100%);">
             <span class="section-tag">SUBMISSION GUIDE</span>
             <h3>Idea Presentation Template</h3>
             <p class="muted" style="margin:1rem 0 1.5rem;">Download our standardized 5-slide template covering Track Focus, Technical Architecture, Feasibility & Novelty, and Societal Impact.</p>
@@ -326,7 +359,7 @@
 
     <!-- Pre-registration Alerts (Notify Me Form) -->
     <section id="notify">
-      <div class="container" style="max-width:740px">
+      <div class="container" style="max-width:760px">
         <div class="glass-panel" style="border: 2px solid var(--border);">
           <span class="section-tag">EARLY ALERTS</span>
           <h2 id="notifyTitle">Get Notified About Key Announcements</h2>
@@ -334,7 +367,7 @@
 
           <form id="notifyForm" novalidate>
             <div id="notifyStatus" class="status" hidden></div>
-            <div class="form-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+            <div class="form-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:1.2rem;">
               <div class="field">
                 <label for="n_name">Full Name *</label>
                 <input id="n_name" name="full_name" type="text" placeholder="e.g. Maya Sundaram" required maxlength="128">
@@ -347,7 +380,7 @@
               </div>
             </div>
 
-            <div class="form-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+            <div class="form-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:1.2rem;">
               <div class="field">
                 <label for="n_college">College / Institution *</label>
                 <input id="n_college" name="college" type="text" placeholder="e.g. RV College of Engineering" required maxlength="256">
@@ -362,7 +395,7 @@
               </div>
             </div>
 
-            <button class="btn btn-primary" type="submit" id="notifySubmit">Send Alert Notification</button>
+            <button class="btn btn-primary btn-lg" type="submit" id="notifySubmit">Send Alert Notification</button>
           </form>
         </div>
       </div>
@@ -377,13 +410,13 @@
             <h2>Have Questions? Connect with Organisers</h2>
             <p class="muted" id="contactOrg">JM Vertex Technologies Helpdesk</p>
           </div>
-          <div style="display:flex; flex-direction:column; gap:0.8rem; font-weight:600;">
-            <a id="contactEmail" href="mailto:support@jmvertex.com" style="display:flex; align-items:center; gap:0.6rem;">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          <div style="display:flex; flex-direction:column; gap:0.9rem; font-weight:600;">
+            <a id="contactEmail" href="mailto:support@jmvertex.com" style="display:flex; align-items:center; gap:0.7rem;">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
               support@jmvertex.com
             </a>
-            <a id="contactPhone" href="tel:+919876543210" style="display:flex; align-items:center; gap:0.6rem;">
-              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+            <a id="contactPhone" href="tel:+919876543210" style="display:flex; align-items:center; gap:0.7rem;">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
               +91 98765 43210
             </a>
           </div>
@@ -397,26 +430,29 @@
     <div class="container">
       <div class="footer-inner">
         <div>
-          <div style="font-family:var(--font-heading); font-size:1.4rem; font-weight:800; color:#fff; display:flex; align-items:center; gap:0.6rem;">
+          <div style="font-family:var(--font-heading); font-size:1.5rem; font-weight:900; color:#fff; display:flex; align-items:center; gap:0.7rem;">
             <span>⚡ JM Vertex Technologies</span>
           </div>
-          <p style="opacity:0.75; font-size:0.9rem; margin-top:0.4rem;">Pioneering technological breakthroughs through student innovation.</p>
+          <p style="opacity:0.75; font-size:0.92rem; margin-top:0.5rem; max-width:44ch;">Pioneering technological breakthroughs through student innovation and rapid prototyping.</p>
         </div>
-        <div style="display:flex; gap:1.5rem; font-size:0.92rem;">
+        <div style="display:flex; flex-wrap:wrap; gap:1.8rem; font-size:0.95rem;">
           <a href="/terms">Terms & Conditions</a>
           <a href="/register">Register Team</a>
           <a href="/admin/login">Admin Portal</a>
           <a href="/download/idea-template">Template (.pptx)</a>
         </div>
       </div>
-      <div style="display:flex; justify-content:space-between; font-size:0.85rem; opacity:0.65;">
+      <div style="display:flex; justify-content:space-between; font-size:0.88rem; opacity:0.65;">
         <span id="footerOrg">© 2026–2027 JM Vertex Technologies. All rights reserved.</span>
-        <span>Secure & Scalable Infrastructure</span>
+        <span>Made with Precision & WebGL 3D</span>
       </div>
     </div>
   </footer>
 
+  <!-- Scripts -->
   <script src="/static/js/common.js"></script>
   <script src="/static/js/landing.js"></script>
+  <script src="/static/js/three-hero.js"></script>
+  <script src="/static/js/visual-effects.js"></script>
 </body>
 </html>

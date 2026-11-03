@@ -17,6 +17,7 @@ TRACKS = [
     "Human Safety, Rights & Empowerment",
     "Health, Education & Digital Innovation",
     "Sustainability, Smart Communities & Social Entrepreneurship",
+    "AI in Hospitality and Management",
 ]
 
 FAQ = [
