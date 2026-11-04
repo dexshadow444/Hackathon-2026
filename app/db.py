@@ -91,6 +91,91 @@ def _init_sqlite():
         created_at TEXT NOT NULL
     );
     """)
+
+    # Relational team members table for normalized table viewing
+    cur.execute("""
+    CREATE TABLE IF NOT EXISTS team_members (
+        id TEXT PRIMARY KEY,
+        registration_id TEXT NOT NULL,
+        team_code TEXT NOT NULL,
+        member_index INTEGER NOT NULL,
+        name TEXT NOT NULL,
+        mobile TEXT NOT NULL,
+        email TEXT NOT NULL,
+        department TEXT,
+        year TEXT,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY (registration_id) REFERENCES registrations(id) ON DELETE CASCADE
+    );
+    """)
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_members_team ON team_members (team_code);")
+    cur.execute("CREATE INDEX IF NOT EXISTS idx_members_reg ON team_members (registration_id);")
+
+    # Flat tabular view expanding crew members into distinct spreadsheet columns
+    cur.execute("DROP VIEW IF EXISTS v_registrations_flat;")
+    cur.execute("""
+    CREATE VIEW v_registrations_flat AS
+    SELECT
+        team_code AS [Team Code],
+        team_name AS [Team Name],
+        track AS [Track],
+        college_name AS [College],
+        payment_status AS [Payment Status],
+        amount_paid AS [Amount (INR)],
+        review_status AS [Review Status],
+        member_count AS [Total Members],
+        leader_name AS [Leader Name],
+        leader_phone AS [Leader Phone],
+        leader_email AS [Leader Email],
+        leader_department AS [Leader Dept],
+        leader_year AS [Leader Year],
+        json_extract(members_data, '$[0].name') AS [Member 1 Name],
+        json_extract(members_data, '$[0].mobile') AS [Member 1 Mobile],
+        json_extract(members_data, '$[0].email') AS [Member 1 Email],
+        json_extract(members_data, '$[0].department') AS [Member 1 Dept],
+        json_extract(members_data, '$[0].year') AS [Member 1 Year],
+        json_extract(members_data, '$[1].name') AS [Member 2 Name],
+        json_extract(members_data, '$[1].mobile') AS [Member 2 Mobile],
+        json_extract(members_data, '$[1].email') AS [Member 2 Email],
+        json_extract(members_data, '$[1].department') AS [Member 2 Dept],
+        json_extract(members_data, '$[1].year') AS [Member 2 Year],
+        json_extract(members_data, '$[2].name') AS [Member 3 Name],
+        json_extract(members_data, '$[2].mobile') AS [Member 3 Mobile],
+        json_extract(members_data, '$[2].email') AS [Member 3 Email],
+        json_extract(members_data, '$[2].department') AS [Member 3 Dept],
+        json_extract(members_data, '$[2].year') AS [Member 3 Year],
+        json_extract(members_data, '$[3].name') AS [Member 4 Name],
+        json_extract(members_data, '$[3].mobile') AS [Member 4 Mobile],
+        json_extract(members_data, '$[3].email') AS [Member 4 Email],
+        json_extract(members_data, '$[3].department') AS [Member 4 Dept],
+        json_extract(members_data, '$[3].year') AS [Member 4 Year],
+        idea_title AS [Idea Title],
+        idea_summary AS [Idea Summary],
+        google_drive_web_link AS [Drive Link],
+        created_at AS [Registered At]
+    FROM registrations;
+    """)
+
+    # Backfill team_members from registrations if empty
+    cur.execute("SELECT COUNT(*) FROM team_members;")
+    if cur.fetchone()[0] == 0:
+        cur.execute("SELECT id, team_code, members_data, created_at FROM registrations;")
+        for r_id, t_code, m_json, c_at in cur.fetchall():
+            try:
+                m_list = json.loads(m_json) if isinstance(m_json, str) else []
+                for idx, m in enumerate(m_list, start=1):
+                    cur.execute("""
+                    INSERT INTO team_members (
+                        id, registration_id, team_code, member_index, name, mobile, email, department, year, created_at
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    """, (
+                        str(uuid.uuid4()), r_id, t_code, idx,
+                        m.get("name", ""), m.get("mobile", ""), m.get("email", ""),
+                        m.get("department", ""), m.get("year", ""), c_at or datetime.now(timezone.utc).isoformat()
+                    ))
+            except Exception:
+                pass
+
     cur.execute("""
     CREATE TABLE IF NOT EXISTS admin_audit_logs (
         id TEXT PRIMARY KEY,
@@ -302,6 +387,25 @@ class Repository:
             data.get("review_status", "submitted"), data.get("admin_notes", ""),
             data["created_at"], data["updated_at"]
         ))
+
+        # Insert crew members into relational team_members table
+        members_list = data.get("members_data") or []
+        if isinstance(members_list, str):
+            try:
+                members_list = json.loads(members_list)
+            except Exception:
+                members_list = []
+        for idx, m in enumerate(members_list, start=1):
+            cur.execute("""
+            INSERT INTO team_members (
+                id, registration_id, team_code, member_index, name, mobile, email, department, year, created_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                str(uuid.uuid4()), reg_id, data["team_code"], idx,
+                m.get("name", ""), m.get("mobile", ""), m.get("email", ""),
+                m.get("department", ""), m.get("year", ""), data["created_at"]
+            ))
+
         conn.commit()
         conn.close()
         return data
@@ -639,6 +743,23 @@ class Repository:
         set_clause = ", ".join(f"{k} = ?" for k in updates.keys())
         values = list(updates.values()) + [reg_id]
         cur.execute(f"UPDATE registrations SET {set_clause} WHERE id = ?", values)
+
+        # Re-sync team_members table if members_data was modified
+        if "members_data" in updates:
+            m_data = updates["members_data"]
+            m_list = json.loads(m_data) if isinstance(m_data, str) else m_data
+            cur.execute("DELETE FROM team_members WHERE registration_id = ?", (reg_id,))
+            for idx, m in enumerate(m_list, start=1):
+                cur.execute("""
+                INSERT INTO team_members (
+                    id, registration_id, team_code, member_index, name, mobile, email, department, year, created_at
+                ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    str(uuid.uuid4()), reg_id, current.get("team_code", ""), idx,
+                    m.get("name", ""), m.get("mobile", ""), m.get("email", ""),
+                    m.get("department", ""), m.get("year", ""), now
+                ))
+
         conn.commit()
         conn.close()
 
@@ -786,6 +907,7 @@ class Repository:
         conn = get_sqlite_conn()
         cur = conn.cursor()
         cur.execute("DELETE FROM registrations WHERE id = ?", (reg_id,))
+        cur.execute("DELETE FROM team_members WHERE registration_id = ?", (reg_id,))
         conn.commit()
         conn.close()
         return file_path
