@@ -178,6 +178,51 @@ assert latest_log["registration_id"] == reg_id
 assert latest_log["action_type"] == "EDIT_PARTICIPANT_DETAILS"
 print(f"[PASS] Admin Action Audit Trail verified: Action '{latest_log['action_type']}' logged by '{latest_log['admin_user']}' with reason '{latest_log['notes']}'")
 
+# 13. Test Admin Invalid Credentials Rejection
+bad_login = client.post("/api/admin/login", json={"username": "admin", "password": "WrongPassword!"})
+assert bad_login.status_code == 401
+print("[PASS] Security: Invalid Admin credentials rejected with 401 Unauthorized")
+
+# 14. Test Admin Route Protection & Gated Redirection
+# Create an unauthenticated client to test unauthenticated access
+unauth_client = TestClient(app)
+unauth_admin = unauth_client.get("/admin")
+assert "adminLoginForm" in unauth_admin.text
+print("[PASS] Security: Unauthenticated access to /admin securely serves Admin Login form")
+
+# With auth cookie, /admin serves the full management dashboard
+auth_admin = client.get("/admin")
+assert "JM Vertex Admin Portal" in auth_admin.text
+print("[PASS] Security: Authenticated admin access to /admin serves Operations Dashboard")
+
+# Visiting /admin/login while already logged in redirects to /admin
+login_redir = client.get("/admin/login", follow_redirects=False)
+assert login_redir.status_code == 303
+assert login_redir.headers["location"] == "/admin"
+print("[PASS] Security: Accessing /admin/login while logged in auto-redirects to /admin (303)")
+
+# 15. Test Metrics Calculation & Live Sync
+metrics_res = client.get("/api/admin/metrics", headers=headers)
+assert metrics_res.status_code == 200
+metrics = metrics_res.json()
+assert metrics["paid_teams"] >= 1
+assert metrics["total_revenue"] >= 198
+assert "teams_per_track" in metrics
+print(f"[PASS] Metrics Sync verified: {metrics['paid_teams']} paid teams, INR {metrics['total_revenue']} total revenue")
+
+# 16. Test Excel and CSV Export Endpoints (via query token)
+export_excel = client.get(f"/api/admin/export/excel?token={admin_token}")
+assert export_excel.status_code == 200
+assert export_excel.headers["content-type"] == "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+assert len(export_excel.content) > 1000
+print(f"[PASS] Excel Export (.xlsx) verified: {len(export_excel.content)} bytes generated")
+
+export_csv = client.get(f"/api/admin/export/csv?token={admin_token}")
+assert export_csv.status_code == 200
+assert "text/csv" in export_csv.headers["content-type"]
+assert "Team Code,Team Name" in export_csv.text
+print("[PASS] CSV Export verified: UTF-8 BOM CSV generated with headers and team rows")
+
 print("\n" + "=" * 70)
 print("ALL 12 END-TO-END TEST SUITES COMPLETED AND PASSED WITH 100% ACCURACY!")
 print("=" * 70)

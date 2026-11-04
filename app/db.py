@@ -439,6 +439,37 @@ class Repository:
         review_status: str = "",
         payment_status: str = "",
     ) -> List[Dict[str, Any]]:
+        if settings.has_supabase:
+            try:
+                client = get_supabase_client()
+                q = client.table("registrations").select("*")
+                if track:
+                    q = q.eq("track", track)
+                if review_status:
+                    q = q.eq("review_status", review_status)
+                if payment_status:
+                    q = q.eq("payment_status", payment_status)
+                if query:
+                    clean_q = query.strip()
+                    pattern = f"%{clean_q}%"
+                    q = q.or_(f"team_name.ilike.{pattern},team_code.ilike.{pattern},leader_name.ilike.{pattern},college_name.ilike.{pattern},leader_email.ilike.{pattern}")
+
+                res = q.order("created_at", desc=True).execute()
+                if res.data is not None:
+                    results = []
+                    for r in res.data:
+                        d = dict(r)
+                        if isinstance(d.get("members_data"), str):
+                            try:
+                                d["members_data"] = json.loads(d["members_data"])
+                            except Exception:
+                                d["members_data"] = []
+                        d["terms_accepted"] = bool(d.get("terms_accepted"))
+                        results.append(d)
+                    return results
+            except Exception as e:
+                log.warning("Supabase get_all_registrations failed (%s); falling back to SQLite", e)
+
         conn = get_sqlite_conn()
         cur = conn.cursor()
         sql = "SELECT * FROM registrations WHERE 1=1"
@@ -648,7 +679,7 @@ class Repository:
                     "team_name": team_name,
                     "admin_user": admin_user,
                     "action_type": action_type,
-                    "changes_json": changes_json,
+                    "changes_json": changes,
                     "notes": notes,
                     "created_at": now,
                 }).execute()
@@ -670,6 +701,29 @@ class Repository:
     @staticmethod
     def get_audit_logs(limit: int = 100, registration_id: Optional[str] = None) -> List[Dict[str, Any]]:
         """Returns action audit trail sorted by latest first."""
+        if settings.has_supabase:
+            try:
+                client = get_supabase_client()
+                q = client.table("admin_audit_logs").select("*")
+                if registration_id:
+                    q = q.eq("registration_id", registration_id)
+                res = q.order("created_at", desc=True).limit(limit).execute()
+                if res.data is not None:
+                    logs = []
+                    for r in res.data:
+                        d = dict(r)
+                        if isinstance(d.get("changes_json"), str):
+                            try:
+                                d["changes"] = json.loads(d["changes_json"])
+                            except Exception:
+                                d["changes"] = {}
+                        else:
+                            d["changes"] = d.get("changes_json") or {}
+                        logs.append(d)
+                    return logs
+            except Exception as e:
+                log.warning("Supabase get_audit_logs failed (%s); falling back to SQLite", e)
+
         conn = get_sqlite_conn()
         cur = conn.cursor()
         if registration_id:
@@ -739,6 +793,45 @@ class Repository:
     @staticmethod
     def get_metrics() -> Dict[str, Any]:
         """Calculates dashboard metrics cards."""
+        if settings.has_supabase:
+            try:
+                client = get_supabase_client()
+                res = client.table("registrations").select("payment_status,amount_paid,member_count,track").execute()
+                data = res.data or []
+
+                total_registered = len(data)
+                paid_count = sum(1 for r in data if r.get("payment_status") == "paid")
+                pending_count = sum(1 for r in data if r.get("payment_status") == "pending")
+                total_revenue = sum(float(r.get("amount_paid") or 0) for r in data if r.get("payment_status") == "paid")
+                confirmed_participants = sum(int(r.get("member_count") or 1) for r in data if r.get("payment_status") == "paid")
+
+                notify_leads = 0
+                try:
+                    leads_res = client.table("preregistration_alerts").select("id", count="exact", head=True).execute()
+                    notify_leads = leads_res.count or 0
+                except Exception:
+                    pass
+
+                teams_per_track = {t: 0 for t in content.TRACKS}
+                for r in data:
+                    t = r.get("track")
+                    if t in teams_per_track:
+                        teams_per_track[t] += 1
+                    elif t:
+                        teams_per_track[t] = 1
+
+                return {
+                    "total_teams": total_registered,
+                    "paid_teams": paid_count,
+                    "pending_teams": pending_count,
+                    "confirmed_participants": confirmed_participants,
+                    "total_revenue": total_revenue,
+                    "notify_leads": notify_leads,
+                    "teams_per_track": teams_per_track,
+                }
+            except Exception as e:
+                log.warning("Supabase get_metrics failed (%s); falling back to SQLite", e)
+
         conn = get_sqlite_conn()
         cur = conn.cursor()
 

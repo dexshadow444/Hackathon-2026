@@ -624,7 +624,8 @@
         $("#dosIdeaDesc").textContent = reg.idea_description;
 
         const downloadBtn = $("#dosDownloadFileBtn");
-        downloadBtn.href = `/api/admin/registration/${reg.id}/file`;
+        const token = localStorage.getItem("hackathon_admin_token");
+        downloadBtn.href = `/api/admin/registration/${reg.id}/file` + (token ? `?token=${encodeURIComponent(token)}` : "");
 
         const pStatus = (reg.payment_status || "pending").toLowerCase();
         $("#dosPaymentBadge").innerHTML = `<span class="badge-status ${pStatus}">${pStatus.toUpperCase()} (₹${reg.amount_paid})</span>`;
@@ -736,9 +737,12 @@
           };
 
           try {
+            const reqHeaders = { "Content-Type": "application/json" };
+            const adminToken = localStorage.getItem("hackathon_admin_token");
+            if (adminToken) reqHeaders["Authorization"] = `Bearer ${adminToken}`;
             const res = await fetch(`/api/admin/registration/${currentActiveRegId}`, {
               method: "PUT",
-              headers: { "Content-Type": "application/json" },
+              headers: reqHeaders,
               body: JSON.stringify(payload),
             });
             const data = await res.json();
@@ -875,7 +879,10 @@
         if (!confirmed) return;
 
         try {
-          const res = await fetch(`/api/admin/registration/${regId}`, { method: "DELETE" });
+          const reqHeaders = {};
+          const adminToken = localStorage.getItem("hackathon_admin_token");
+          if (adminToken) reqHeaders["Authorization"] = `Bearer ${adminToken}`;
+          const res = await fetch(`/api/admin/registration/${regId}`, { method: "DELETE", headers: reqHeaders });
           if (res.ok) {
             allRegistrations = allRegistrations.filter((r) => r.id !== regId);
             renderTable(allRegistrations);
@@ -901,11 +908,25 @@
         $("#filterPayment").addEventListener("change", loadRegistrations);
 
         $("#btnAdminLogout").addEventListener("click", async () => {
-          await postJSON("/api/admin/logout", {});
+          try {
+            await postJSON("/api/admin/logout", {});
+          } catch {}
+          try {
+            localStorage.removeItem("hackathon_admin_token");
+          } catch {}
           window.location.href = "/admin";
         });
 
         $("#btnRefreshAudit").addEventListener("click", loadAuditLogs);
+
+        // Decorate export links with token query param for seamless direct downloads
+        const token = localStorage.getItem("hackathon_admin_token");
+        if (token) {
+          const csvL = document.querySelector('a[href^="/api/admin/export/csv"]');
+          if (csvL) csvL.href = `/api/admin/export/csv?token=${encodeURIComponent(token)}`;
+          const xlsL = document.querySelector('a[href^="/api/admin/export/excel"]');
+          if (xlsL) xlsL.href = `/api/admin/export/excel?token=${encodeURIComponent(token)}`;
+        }
       }
 
       async function init() {

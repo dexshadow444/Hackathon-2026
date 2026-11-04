@@ -61,6 +61,8 @@ def get_authenticated_admin(request: Request) -> str:
         auth_header = request.headers.get("Authorization", "")
         if auth_header.startswith("Bearer "):
             token = auth_header.split(" ", 1)[1]
+    if not token:
+        token = request.query_params.get("token")
 
     if not token:
         raise HTTPException(status_code=401, detail="Admin authentication required.")

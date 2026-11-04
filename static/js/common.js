@@ -38,7 +38,12 @@ window.HK = (() => {
   const DATETIME = { day: "numeric", month: "short", year: "numeric", hour: "numeric", minute: "2-digit", hour12: true };
 
   async function getJSON(url) {
-    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    const headers = { Accept: "application/json" };
+    try {
+      const token = localStorage.getItem("hackathon_admin_token");
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+    } catch {}
+    const res = await fetch(url, { headers });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw err;
@@ -47,9 +52,14 @@ window.HK = (() => {
   }
 
   async function postJSON(url, data) {
+    const headers = { "Content-Type": "application/json", Accept: "application/json" };
+    try {
+      const token = localStorage.getItem("hackathon_admin_token");
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+    } catch {}
     const res = await fetch(url, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      headers,
       body: JSON.stringify(data),
     });
     const json = await res.json().catch(() => ({}));

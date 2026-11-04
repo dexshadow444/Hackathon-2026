@@ -3,7 +3,7 @@ from pathlib import Path
 
 from fastapi import FastAPI, Request, Response
 from fastapi.exceptions import RequestValidationError
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse
+from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from slowapi.errors import RateLimitExceeded
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -129,13 +129,30 @@ def confirmation_page(team_code: str):
 
 
 @app.get("/admin/login", include_in_schema=False)
-def admin_login_page():
+def admin_login_page(request: Request):
+    token = request.cookies.get(ADMIN_COOKIE_NAME)
+    if not token:
+        auth_header = request.headers.get("Authorization", "")
+        if auth_header.startswith("Bearer "):
+            token = auth_header.split(" ", 1)[1]
+    if not token:
+        token = request.query_params.get("token")
+
+    if token and verify_admin_session(token):
+        return RedirectResponse(url="/admin", status_code=303)
     return FileResponse(STATIC / "admin-login.html")
 
 
 @app.get("/admin", include_in_schema=False)
 def admin_dashboard_page(request: Request):
     token = request.cookies.get(ADMIN_COOKIE_NAME)
+    if not token:
+        auth_header = request.headers.get("Authorization", "")
+        if auth_header.startswith("Bearer "):
+            token = auth_header.split(" ", 1)[1]
+    if not token:
+        token = request.query_params.get("token")
+
     if not token or not verify_admin_session(token):
         return FileResponse(STATIC / "admin-login.html")
     return FileResponse(STATIC / "admin.html")
