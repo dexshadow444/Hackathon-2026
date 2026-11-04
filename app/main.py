@@ -12,6 +12,7 @@ from .config import settings
 from .db import DatabaseNotConfigured
 from .limiter import limiter
 from .routes import admin, public
+from .services import ADMIN_COOKIE_NAME, verify_admin_session
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("hackathon")
@@ -133,7 +134,10 @@ def admin_login_page():
 
 
 @app.get("/admin", include_in_schema=False)
-def admin_dashboard_page():
+def admin_dashboard_page(request: Request):
+    token = request.cookies.get(ADMIN_COOKIE_NAME)
+    if not token or not verify_admin_session(token):
+        return FileResponse(STATIC / "admin-login.html")
     return FileResponse(STATIC / "admin.html")
 
 
