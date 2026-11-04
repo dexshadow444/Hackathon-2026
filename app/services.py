@@ -2,8 +2,11 @@ import csv
 import hashlib
 import hmac
 import io
+import json
+import logging
 import os
 import random
+import re
 import string
 import uuid
 from datetime import datetime, timezone
@@ -19,6 +22,8 @@ from .config import IST, settings
 from .content import TERMS_VERSION
 from .db import UPLOAD_DIR, Repository, next_team_sequence
 
+log = logging.getLogger("hackathon.services")
+
 # Admin Session Serializer
 _signer = URLSafeTimedSerializer(settings.SECRET_KEY, salt="admin-session-auth")
 ADMIN_COOKIE_NAME = "hackathon_admin_session"
@@ -31,7 +36,6 @@ def hash_password(password: str) -> str:
 
 
 def verify_password(plain_password: str, expected_password: str) -> bool:
-    # If the configured password looks like a sha256 hash (64 hex), check hash; else check direct compare
     salt = settings.SECRET_KEY[:16]
     hashed_input = hashlib.sha256(f"{salt}{plain_password}".encode("utf-8")).hexdigest()
     if len(expected_password) == 64:
@@ -54,7 +58,6 @@ def verify_admin_session(token: str) -> Optional[str]:
 def get_authenticated_admin(request: Request) -> str:
     token = request.cookies.get(ADMIN_COOKIE_NAME)
     if not token:
-        # Also check Authorization header Bearer token
         auth_header = request.headers.get("Authorization", "")
         if auth_header.startswith("Bearer "):
             token = auth_header.split(" ", 1)[1]
@@ -85,7 +88,11 @@ def registration_info() -> dict:
         "state": registration_state(),
         "open_at": settings.REGISTRATION_OPEN_DATE.isoformat(),
         "deadline": settings.REGISTRATION_DEADLINE.isoformat(),
-        "fee_inr": settings.REGISTRATION_FEE_INR,
+        "fee_per_member_inr": settings.REGISTRATION_FEE_PER_MEMBER_INR,
+        "fee_inr": settings.REGISTRATION_FEE_PER_MEMBER_INR,
+        "min_members": settings.MIN_TEAM_MEMBERS,
+        "max_members": settings.MAX_TEAM_MEMBERS,
+        "location": settings.EVENT_LOCATION,
     }
 
 
@@ -98,14 +105,84 @@ def generate_team_code() -> str:
 
 
 # ---------------- File Upload Validation & Storage ----------------
-ALLOWED_EXTENSIONS = {".pptx", ".ppt", ".pdf"}
+# Requirement 13: STRICTLY PPT and PPTX only
+ALLOWED_EXTENSIONS = {".pptx", ".ppt"}
 MAX_FILE_BYTES = 10 * 1024 * 1024  # 10 MB
 
 
-async def save_uploaded_presentation(file: UploadFile) -> Tuple[str, str]:
+def extract_drive_folder_id() -> str:
+    """Extracts or returns the Google Drive folder ID configured in .env."""
+    if settings.GOOGLE_DRIVE_FOLDER_ID:
+        return settings.GOOGLE_DRIVE_FOLDER_ID
+    if settings.GOOGLE_DRIVE_FOLDER_URL:
+        # Match .../folders/([a-zA-Z0-9_-]+)
+        m = re.search(r"folders/([a-zA-Z0-9_-]+)", settings.GOOGLE_DRIVE_FOLDER_URL)
+        if m:
+            return m.group(1)
+    return ""
+
+
+async def upload_to_google_drive(contents: bytes, filename: str, team_code: str) -> Tuple[Optional[str], Optional[str]]:
+    """
+    Attempts to upload the presentation file directly to Google Drive
+    using Service Account credentials if configured in .env.
+    Returns (drive_file_id, web_view_link).
+    """
+    folder_id = extract_drive_folder_id()
+    if not (settings.GOOGLE_SERVICE_ACCOUNT_JSON or settings.GOOGLE_SERVICE_ACCOUNT_FILE):
+        # Service account credentials not provided: fall back gracefully to folder URL link
+        return None, settings.GOOGLE_DRIVE_FOLDER_URL
+
+    try:
+        from google.oauth2 import service_account
+        from googleapiclient.discovery import build
+        from googleapiclient.http import MediaIoBaseUpload
+
+        scopes = ['https://www.googleapis.com/auth/drive.file']
+        creds = None
+        if settings.GOOGLE_SERVICE_ACCOUNT_JSON:
+            info = json.loads(settings.GOOGLE_SERVICE_ACCOUNT_JSON)
+            creds = service_account.Credentials.from_service_account_info(info, scopes=scopes)
+        elif settings.GOOGLE_SERVICE_ACCOUNT_FILE and os.path.exists(settings.GOOGLE_SERVICE_ACCOUNT_FILE):
+            creds = service_account.Credentials.from_service_account_file(settings.GOOGLE_SERVICE_ACCOUNT_FILE, scopes=scopes)
+
+        if not creds:
+            return None, settings.GOOGLE_DRIVE_FOLDER_URL
+
+        drive_service = build('drive', 'v3', credentials=creds)
+
+        file_metadata = {
+            'name': f"{team_code}_{filename}",
+        }
+        if folder_id:
+            file_metadata['parents'] = [folder_id]
+
+        media = MediaIoBaseUpload(
+            io.BytesIO(contents),
+            mimetype='application/vnd.openxmlformats-officedocument.presentationml.presentation'
+            if filename.endswith('.pptx') else 'application/vnd.ms-powerpoint',
+            resumable=True
+        )
+
+        drive_file = drive_service.files().create(
+            body=file_metadata,
+            media_body=media,
+            fields='id, webViewLink, webContentLink'
+        ).execute()
+
+        file_id = drive_file.get('id')
+        web_link = drive_file.get('webViewLink') or drive_file.get('webContentLink') or settings.GOOGLE_DRIVE_FOLDER_URL
+        return file_id, web_link
+    except Exception as e:
+        log.warning("Google Drive direct upload failed (%s); fallback to local/folder link.", e)
+        return None, settings.GOOGLE_DRIVE_FOLDER_URL
+
+
+async def save_uploaded_presentation(file: UploadFile, team_code: str = "") -> Tuple[str, str, Optional[str], Optional[str]]:
     """
     Validates extension and size, saves file under randomised filename in private location.
-    Returns (original_filename, stored_path_or_key).
+    Also handles Google Drive integration.
+    Returns (original_filename, stored_path_or_key, drive_file_id, drive_web_link).
     """
     if not file.filename:
         raise HTTPException(status_code=422, detail="Presentation file is required.")
@@ -114,41 +191,42 @@ async def save_uploaded_presentation(file: UploadFile) -> Tuple[str, str]:
     if ext not in ALLOWED_EXTENSIONS:
         raise HTTPException(
             status_code=422,
-            detail=f"Invalid file type '{ext}'. Only .pptx, .ppt, and .pdf files are accepted.",
+            detail=f"Invalid file type '{ext}'. Strictly only .pptx and .ppt PowerPoint presentations are accepted.",
         )
 
-    # Read and check size
     contents = await file.read()
     if len(contents) > MAX_FILE_BYTES:
         raise HTTPException(
             status_code=422,
-            detail="File size exceeds the 10 MB limit. Please compress or select a smaller file.",
+            detail="File size exceeds the 10 MB limit. Please compress or select a smaller presentation deck.",
         )
 
     random_name = f"{uuid.uuid4().hex}{ext}"
+
+    # Google Drive upload integration
+    drive_file_id, drive_web_link = await upload_to_google_drive(contents, file.filename, team_code or "HACK27")
 
     # If Supabase storage is configured:
     if settings.has_supabase:
         try:
             from .db import get_supabase_client
             client = get_supabase_client()
-            content_type = file.content_type or "application/octet-stream"
+            content_type = file.content_type or "application/vnd.openxmlformats-officedocument.presentationml.presentation"
             client.storage.from_(settings.SUPABASE_BUCKET).upload(
                 path=random_name,
                 file=contents,
                 file_options={"content-type": content_type, "upsert": "true"}
             )
-            return file.filename, random_name
-        except Exception as e:
-            # Fallback to local
+            return file.filename, random_name, drive_file_id, drive_web_link
+        except Exception:
             pass
 
-    # Local private storage
+    # Local storage
     dest = UPLOAD_DIR / random_name
     with open(dest, "wb") as f:
         f.write(contents)
 
-    return file.filename, random_name
+    return file.filename, random_name, drive_file_id, drive_web_link
 
 
 def get_presentation_file_path(filename_or_key: str) -> Optional[Path]:
@@ -160,7 +238,7 @@ def get_presentation_file_path(filename_or_key: str) -> Optional[Path]:
 
 
 # ---------------- Payment (Razorpay & Sandbox) ----------------
-def create_payment_order(team_code: str, amount_inr: int = 500) -> Dict[str, Any]:
+def create_payment_order(team_code: str, amount_inr: int = 99) -> Dict[str, Any]:
     amount_paise = amount_inr * 100
 
     if settings.has_razorpay:
@@ -171,7 +249,7 @@ def create_payment_order(team_code: str, amount_inr: int = 500) -> Dict[str, Any
                 "amount": amount_paise,
                 "currency": "INR",
                 "receipt": team_code,
-                "notes": {"team_code": team_code},
+                "notes": {"team_code": team_code, "amount_inr": amount_inr},
             }
             order = client.order.create(data=order_data)
             return {
@@ -220,7 +298,6 @@ def verify_payment(
 
     # Development Sandbox simulation
     if not settings.is_production and order_id.startswith("order_sbx_"):
-        # Valid test signature verification
         return True
 
     return False
@@ -232,7 +309,6 @@ def generate_excel_export(registrations: list[dict]) -> io.BytesIO:
     ws = wb.active
     ws.title = "Hackathon Registrations"
 
-    # Styling palette
     header_fill = PatternFill(start_color="147A47", end_color="147A47", fill_type="solid")
     header_font = Font(name="Calibri", size=11, bold=True, color="FFFFFF")
     data_font = Font(name="Calibri", size=10)
@@ -249,25 +325,19 @@ def generate_excel_export(registrations: list[dict]) -> io.BytesIO:
         "Team Code", "Team Name", "College / Institution", "Hackathon Track",
         "Payment Status", "Amount (₹)", "Payment ID", "Review Status",
         "Leader Name", "Leader Email", "Leader Phone", "Leader Department", "Leader Year",
-        "Leader Gender", "Leader ID", "Crew Count",
-        # Member 1
+        "Leader Gender", "Leader ID", "Total Team Members",
+        # Up to 4 Crew Members (min 2 to max 5 total members)
         "Member 1 Name", "Member 1 Mobile", "Member 1 Email", "Member 1 Dept", "Member 1 Year",
-        # Member 2
         "Member 2 Name", "Member 2 Mobile", "Member 2 Email", "Member 2 Dept", "Member 2 Year",
-        # Member 3
         "Member 3 Name", "Member 3 Mobile", "Member 3 Email", "Member 3 Dept", "Member 3 Year",
-        # Member 4 (Optional)
         "Member 4 Name", "Member 4 Mobile", "Member 4 Email", "Member 4 Dept", "Member 4 Year",
-        # Member 5 (Optional)
-        "Member 5 Name", "Member 5 Mobile", "Member 5 Email", "Member 5 Dept", "Member 5 Year",
-        "Idea Title", "Idea Summary", "Idea File Name",
+        "Idea Title", "Idea Summary", "Idea Presentation File", "Google Drive Link",
         "Terms Accepted", "Terms Version", "Terms Accepted At (UTC)",
         "Admin Notes", "Registration Date"
     ]
 
     ws.append(headers)
 
-    # Style header row
     for col_idx in range(1, len(headers) + 1):
         cell = ws.cell(row=1, column=col_idx)
         cell.fill = header_fill
@@ -277,12 +347,10 @@ def generate_excel_export(registrations: list[dict]) -> io.BytesIO:
 
     ws.row_dimensions[1].height = 28
 
-    # Populate rows
     for row_idx, reg in enumerate(registrations, start=2):
         members = reg.get("members_data") or []
         if isinstance(members, str):
             try:
-                import json
                 members = json.loads(members)
             except Exception:
                 members = []
@@ -306,8 +374,8 @@ def generate_excel_export(registrations: list[dict]) -> io.BytesIO:
             reg.get("member_count", len(members) + 1),
         ]
 
-        # 5 possible additional members (up to 6 total including leader)
-        for i in range(5):
+        # 4 crew slots (total team up to 5)
+        for i in range(4):
             if i < len(members):
                 m = members[i]
                 row_data.extend([
@@ -324,6 +392,7 @@ def generate_excel_export(registrations: list[dict]) -> io.BytesIO:
             reg.get("idea_title", ""),
             (reg.get("idea_summary", "")[:500] + "...") if len(reg.get("idea_summary", "")) > 500 else reg.get("idea_summary", ""),
             reg.get("idea_ppt_filename", ""),
+            reg.get("google_drive_web_link") or settings.GOOGLE_DRIVE_FOLDER_URL,
             "Yes" if reg.get("terms_accepted") else "No",
             reg.get("terms_version", TERMS_VERSION),
             reg.get("terms_accepted_at", ""),
@@ -333,14 +402,12 @@ def generate_excel_export(registrations: list[dict]) -> io.BytesIO:
 
         ws.append(row_data)
 
-        # Style data cells
         for col_idx in range(1, len(row_data) + 1):
             cell = ws.cell(row=row_idx, column=col_idx)
             cell.font = data_font
             cell.border = thin_border
             cell.alignment = left_align
 
-            # Color payment status
             if col_idx == 5:
                 status = str(cell.value).upper()
                 if status == "PAID":
@@ -351,7 +418,6 @@ def generate_excel_export(registrations: list[dict]) -> io.BytesIO:
                     cell.font = Font(name="Calibri", bold=True, color="B26A00")
                 cell.alignment = center_align
 
-    # Auto-adjust column widths
     for col in ws.columns:
         max_len = max(len(str(cell.value or '')) for cell in col)
         col_letter = openpyxl.utils.get_column_letter(col[0].column)
@@ -375,8 +441,7 @@ def generate_csv_export(registrations: list[dict]) -> str:
         "Member 2 Name", "Member 2 Mobile", "Member 2 Email", "Member 2 Dept", "Member 2 Year",
         "Member 3 Name", "Member 3 Mobile", "Member 3 Email", "Member 3 Dept", "Member 3 Year",
         "Member 4 Name", "Member 4 Mobile", "Member 4 Email", "Member 4 Dept", "Member 4 Year",
-        "Member 5 Name", "Member 5 Mobile", "Member 5 Email", "Member 5 Dept", "Member 5 Year",
-        "Idea Title", "Terms Accepted", "Terms Version", "Terms Accepted At (UTC)",
+        "Idea Title", "Drive Link", "Terms Accepted", "Terms Version", "Terms Accepted At (UTC)",
         "Admin Notes", "Created At"
     ]
     writer.writerow(headers)
@@ -385,7 +450,6 @@ def generate_csv_export(registrations: list[dict]) -> str:
         members = reg.get("members_data") or []
         if isinstance(members, str):
             try:
-                import json
                 members = json.loads(members)
             except Exception:
                 members = []
@@ -407,7 +471,7 @@ def generate_csv_export(registrations: list[dict]) -> str:
             reg.get("member_count", len(members) + 1),
         ]
 
-        for i in range(5):
+        for i in range(4):
             if i < len(members):
                 m = members[i]
                 row.extend([
@@ -422,6 +486,7 @@ def generate_csv_export(registrations: list[dict]) -> str:
 
         row.extend([
             reg.get("idea_title", ""),
+            reg.get("google_drive_web_link") or settings.GOOGLE_DRIVE_FOLDER_URL,
             "true" if reg.get("terms_accepted") else "false",
             reg.get("terms_version", TERMS_VERSION),
             reg.get("terms_accepted_at", ""),

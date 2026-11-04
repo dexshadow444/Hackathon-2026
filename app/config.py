@@ -41,6 +41,12 @@ class Settings:
     HOST = _str("HOST", "127.0.0.1")
     PORT = _int("PORT", 8000)
 
+    EVENT_NAME = _str("EVENT_NAME", "JM Vertex Hackathon 2027")
+    TAGLINE = _str("TAGLINE", "Turn a real-world problem into a working prototype in 24 hours.")
+    ORGANISER = _str("ORGANISER", "JM Vertex Technologies")
+    EVENT_LOCATION = _str("EVENT_LOCATION", "Pollachi, Tamil Nadu")
+    VENUE = _str("VENUE", "JM Vertex Innovation Hub, Pollachi, Tamil Nadu")
+
     ADMIN_USERNAME = _str("ADMIN_USERNAME", "admin")
     ADMIN_PASSWORD = _str("ADMIN_PASSWORD", "AdminPass@2027!")
 
@@ -51,11 +57,20 @@ class Settings:
     SUPABASE_SERVICE_KEY = _str("SUPABASE_SERVICE_KEY")
     SUPABASE_BUCKET = _str("SUPABASE_BUCKET", "hackathon-ideas")
 
-    REGISTRATION_FEE_INR = _int("REGISTRATION_FEE_INR", 500)
-    MIN_TEAM_MEMBERS = _int("MIN_TEAM_MEMBERS", 4)
-    MAX_TEAM_MEMBERS = _int("MAX_TEAM_MEMBERS", 6)
+    # Google Drive configuration (Folder link or Service Account)
+    GOOGLE_DRIVE_FOLDER_URL = _str("GOOGLE_DRIVE_FOLDER_URL", "https://drive.google.com/drive/folders/your-folder-id")
+    GOOGLE_DRIVE_FOLDER_ID = _str("GOOGLE_DRIVE_FOLDER_ID", "")
+    GOOGLE_SERVICE_ACCOUNT_JSON = _str("GOOGLE_SERVICE_ACCOUNT_JSON", "")
+    GOOGLE_SERVICE_ACCOUNT_FILE = _str("GOOGLE_SERVICE_ACCOUNT_FILE", "")
 
-    # Dates configured
+    # Pricing & Team Structure (₹99 per member / participant; 2 to 5 members total)
+    REGISTRATION_FEE_PER_MEMBER_INR = _int("REGISTRATION_FEE_PER_MEMBER_INR", 99)
+    # Legacy alias support if someone sets REGISTRATION_FEE_INR to 99
+    REGISTRATION_FEE_INR = _int("REGISTRATION_FEE_INR", 99)
+    MIN_TEAM_MEMBERS = _int("MIN_TEAM_MEMBERS", 2)
+    MAX_TEAM_MEMBERS = _int("MAX_TEAM_MEMBERS", 5)
+
+    # Dates configured from .env
     REGISTRATION_OPEN_DATE = _dt("REGISTRATION_OPEN_DATE", "2026-10-30T00:00:00")
     REGISTRATION_DEADLINE = _dt("REGISTRATION_DEADLINE", "2026-12-20T23:59:59")
     HACKATHON_START_DATE = _dt("HACKATHON_START_DATE", "2027-01-07T09:00:00")
@@ -75,6 +90,10 @@ class Settings:
     @property
     def has_razorpay(self) -> bool:
         return bool(self.RAZORPAY_KEY_ID and self.RAZORPAY_KEY_SECRET)
+
+    @property
+    def has_google_drive_folder(self) -> bool:
+        return bool(self.GOOGLE_DRIVE_FOLDER_URL or self.GOOGLE_DRIVE_FOLDER_ID)
 
     @property
     def force_unlock(self) -> bool:

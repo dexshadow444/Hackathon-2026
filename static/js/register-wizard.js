@@ -15,13 +15,18 @@
 
   let currentStep = 1;
   let selectedFile = null;
+  let selectedFileUrl = null;
   let pendingOrderData = null;
 
-  const MIN_CREW = 3; // + 1 leader = 4
-  const MAX_CREW = 5; // + 1 leader = 6
+  // Defaults from .env / config
+  let feePerMember = 99;
+  let MIN_TEAM_TOTAL = 2;
+  let MAX_TEAM_TOTAL = 5;
+  let MIN_CREW = 1; // 1 leader + 1 crew = 2
+  let MAX_CREW = 4; // 1 leader + 4 crew = 5
   let crewList = [];
 
-  // Terms modal setup
+  // Modals
   const termsModal = setupModal("termsModal");
   const sandboxModal = setupModal("sandboxModal");
 
@@ -35,19 +40,43 @@
   const maxCapacityMsg = $("#maxCapacityMsg");
   const termsCheckbox = $("#w_terms_accepted");
   const btnSubmitPayment = $("#btnSubmitPayment");
+  const payBtnText = $("#payBtnText");
+  const topBackBtn = $("#topBackBtn");
+
+  // Real-time Pricing DOM Elements
+  const headerLiveFee = $("#headerLiveFee");
+  const headerMemberCountText = $("#headerMemberCountText");
+  const step1LiveFee = $("#step1LiveFee");
+  const step1MemberSubtext = $("#step1MemberSubtext");
+  const revTotalAmountDisplay = $("#revTotalAmountDisplay");
+  const revFeeCalculationBreakdown = $("#revFeeCalculationBreakdown");
+  const sbxAmountPayable = $("#sbxAmountPayable");
 
   // Step sections
   const stepSection1 = $("#stepSection1");
   const stepSection2 = $("#stepSection2");
   const stepSection3 = $("#stepSection3");
-  const stepNode1 = $("#stepNode1");
-  const stepNode2 = $("#stepNode2");
-  const stepNode3 = $("#stepNode3");
+  const stepMilestone1 = $("#stepMilestone1");
+  const stepMilestone2 = $("#stepMilestone2");
+  const stepMilestone3 = $("#stepMilestone3");
+  const connector1to2 = $("#connector1to2");
+  const connector2to3 = $("#connector2to3");
 
   // ---------------- Initialize & Gate Check ----------------
   async function init() {
     try {
-      const reg = await getJSON("/api/registration-status");
+      const cfg = await getJSON("/api/config");
+      const reg = cfg.registration || (await getJSON("/api/registration-status"));
+
+      // Configure fee and team size from .env
+      feePerMember = cfg.fee_per_member_inr || cfg.fee_inr || 99;
+      if (cfg.team_size) {
+        MIN_TEAM_TOTAL = cfg.team_size.min || 2;
+        MAX_TEAM_TOTAL = cfg.team_size.max || 5;
+        MIN_CREW = Math.max(1, MIN_TEAM_TOTAL - 1);
+        MAX_CREW = Math.max(MIN_CREW, MAX_TEAM_TOTAL - 1);
+      }
+
       if (reg.state === "not_open") {
         gateCard.replaceChildren(
           el("h3", { text: "Registration Has Not Opened Yet" }),
@@ -65,11 +94,12 @@
         return;
       }
 
-      // Open: reveal wizard and setup crew
+      // Registration is Open
       gateCard.hidden = true;
       wizardRoot.hidden = false;
       setupInitialCrew();
       setupEvents();
+      updateRealtimePricing();
     } catch (e) {
       gateCard.replaceChildren(
         el("h3", { text: "Service Unavailable" }),
@@ -79,10 +109,30 @@
     }
   }
 
-  // ---------------- Crew Members Setup ----------------
+  // ---------------- Real-time Pricing Calculations ----------------
+  function updateRealtimePricing() {
+    const totalMembers = crewList.length + 1; // 1 leader + crew count
+    const totalFee = totalMembers * feePerMember;
+    const formattedFee = `₹${totalFee.toLocaleString("en-IN")}`;
+
+    if (headerLiveFee) headerLiveFee.textContent = formattedFee;
+    if (headerMemberCountText) headerMemberCountText.textContent = `(${totalMembers} members)`;
+
+    if (step1LiveFee) step1LiveFee.textContent = formattedFee;
+    if (step1MemberSubtext) step1MemberSubtext.textContent = `(₹${feePerMember} × ${totalMembers} members)`;
+
+    if (revTotalAmountDisplay) revTotalAmountDisplay.textContent = formattedFee;
+    if (revFeeCalculationBreakdown) revFeeCalculationBreakdown.textContent = `(₹${feePerMember} × ${totalMembers} participants)`;
+
+    if (payBtnText) payBtnText.textContent = `Pay ${formattedFee} & Complete Registration 💳`;
+    if (sbxAmountPayable) sbxAmountPayable.textContent = `${formattedFee}.00`;
+  }
+
+  // ---------------- Crew Members Setup (2 to 5 members total) ----------------
   function setupInitialCrew() {
     crewContainer.replaceChildren();
     crewList = [];
+    // Start with 1 required crew member (Total 2 members: 1 leader + 1 crew)
     for (let i = 1; i <= MIN_CREW; i++) {
       addCrewCard(i, false);
     }
@@ -115,7 +165,7 @@
     grid1.innerHTML = `
       <div class="field">
         <label>Member Full Name *</label>
-        <input type="text" class="c-name" placeholder="Full name" required maxlength="128">
+        <input type="text" class="c-name" placeholder="Full name of member" required maxlength="128">
         <span class="field-error err-c-name"></span>
       </div>
       <div class="field">
@@ -126,7 +176,7 @@
     `;
     card.appendChild(grid1);
 
-    const grid2 = el("div", { class: "form-grid", style: "grid-template-columns: 1fr 1fr 1fr;" });
+    const grid2 = el("div", { class: "form-grid", style: "grid-template-columns: 1.2fr 1fr 1fr;" });
     grid2.innerHTML = `
       <div class="field">
         <label>Email Address *</label>
@@ -135,7 +185,7 @@
       </div>
       <div class="field">
         <label>Department <small>(Optional)</small></label>
-        <input type="text" class="c-dept" placeholder="e.g. Electrical">
+        <input type="text" class="c-dept" placeholder="e.g. Mechanical">
       </div>
       <div class="field">
         <label>Year of Study</label>
@@ -153,6 +203,7 @@
     crewContainer.appendChild(card);
     crewList.push(cardId);
     updateCapacityUI();
+    updateRealtimePricing();
   }
 
   function removeCrewCard(cardId) {
@@ -163,6 +214,7 @@
       crewList = crewList.filter((id) => id !== cardId);
       reindexCrewCards();
       updateCapacityUI();
+      updateRealtimePricing();
     }
   }
 
@@ -180,7 +232,7 @@
 
   function updateCapacityUI() {
     const totalTeam = crewList.length + 1; // + 1 for Leader
-    liveTeamCount.textContent = `${totalTeam} / 6`;
+    liveTeamCount.textContent = `${totalTeam} / ${MAX_TEAM_TOTAL}`;
 
     if (crewList.length >= MAX_CREW) {
       btnAddMember.disabled = true;
@@ -198,13 +250,37 @@
     stepSection2.hidden = step !== 2;
     stepSection3.hidden = step !== 3;
 
-    stepNode1.classList.toggle("active", step === 1);
-    stepNode1.classList.toggle("completed", step > 1);
-    stepNode2.classList.toggle("active", step === 2);
-    stepNode2.classList.toggle("completed", step > 2);
-    stepNode3.classList.toggle("active", step === 3);
+    // Update Horizontal Milestones
+    stepMilestone1.classList.toggle("active", step === 1);
+    stepMilestone1.classList.toggle("completed", step > 1);
 
-    window.scrollTo({ top: wizardRoot.offsetTop - 80, behavior: "smooth" });
+    stepMilestone2.classList.toggle("active", step === 2);
+    stepMilestone2.classList.toggle("completed", step > 2);
+
+    stepMilestone3.classList.toggle("active", step === 3);
+
+    if (connector1to2) connector1to2.classList.toggle("active", step >= 2);
+    if (connector2to3) connector2to3.classList.toggle("active", step >= 3);
+
+    // Requirement 11: Top Back Button updates dynamically based on current step
+    if (topBackBtn) {
+      if (step === 1) {
+        topBackBtn.textContent = "← Back to Event Page";
+        topBackBtn.href = "/";
+        topBackBtn.onclick = null;
+      } else if (step === 2) {
+        topBackBtn.textContent = "← Back to Step 1";
+        topBackBtn.href = "javascript:void(0)";
+        topBackBtn.onclick = () => goToStep(1);
+      } else if (step === 3) {
+        topBackBtn.textContent = "← Back to Step 2";
+        topBackBtn.href = "javascript:void(0)";
+        topBackBtn.onclick = () => goToStep(2);
+      }
+    }
+
+    updateRealtimePricing();
+    window.scrollTo({ top: wizardRoot.offsetTop - 60, behavior: "smooth" });
   }
 
   // ---------------- Validation ----------------
@@ -214,7 +290,6 @@
     clearErrors(form);
     let valid = true;
 
-    // Team name
     const teamName = form.team_name.value.trim();
     if (!teamName) {
       showError("team_name", "Team name is required.");
@@ -224,21 +299,18 @@
       valid = false;
     }
 
-    // College
     const college = form.college_name.value.trim();
     if (!college) {
       showError("college_name", "College or Institution name is required.");
       valid = false;
     }
 
-    // Track
     const track = form.track.value;
     if (!track) {
       showError("track", "Please choose a track.");
       valid = false;
     }
 
-    // Leader
     const leaderName = form.leader_name.value.trim();
     if (!leaderName) {
       showError("leader_name", "Team Leader name is required.");
@@ -269,7 +341,7 @@
       valid = false;
     }
 
-    // Crew members
+    // Validate crew members
     const cards = crewContainer.querySelectorAll(".crew-member-card");
     cards.forEach((card, idx) => {
       const name = card.querySelector(".c-name").value.trim();
@@ -332,8 +404,9 @@
       valid = false;
     }
 
+    // Requirement 13: STRICTLY PPT and PPTX only
     if (!selectedFile) {
-      showError("idea_presentation", "Please upload your presentation file (.pptx, .ppt, or .pdf).");
+      showError("idea_presentation", "Please upload your presentation file (.pptx or .ppt only).");
       valid = false;
     }
 
@@ -373,7 +446,7 @@
       const year = c.querySelector(".c-year").value;
 
       const item = el("div", {
-        style: "display:flex; justify-content:space-between; padding:0.4rem 0; border-bottom:1px solid var(--border-light); font-size:0.92rem;",
+        style: "display:flex; justify-content:space-between; padding:0.45rem 0; border-bottom:1px solid var(--border-light); font-size:0.92rem;",
       });
       item.innerHTML = `
         <div><strong>#${idx + 1} ${name}</strong> <span class="muted">(${dept || "General"} · ${year})</span></div>
@@ -385,7 +458,21 @@
     $("#revIdeaTitle").textContent = form.idea_title.value.trim();
     const sum = form.idea_summary.value.trim();
     $("#revIdeaSummary").textContent = sum.length > 250 ? sum.substring(0, 250) + "..." : sum;
-    $("#revFileName").textContent = selectedFile ? `${selectedFile.name} (${(selectedFile.size / (1024 * 1024)).toFixed(2)} MB)` : "None";
+
+    // Requirement 15: Clickable presentation link in Step 3 Review
+    const revFileName = $("#revFileName");
+    const revFileLink = $("#revFileLink");
+    if (selectedFile) {
+      revFileName.textContent = `${selectedFile.name} (${(selectedFile.size / (1024 * 1024)).toFixed(2)} MB)`;
+      if (selectedFileUrl && revFileLink) {
+        revFileLink.href = selectedFileUrl;
+        revFileLink.download = selectedFile.name;
+      }
+    } else {
+      revFileName.textContent = "None";
+    }
+
+    updateRealtimePricing();
   }
 
   // ---------------- Event Listeners ----------------
@@ -419,7 +506,7 @@
       }, 350);
     });
 
-    // Add member
+    // Add member (up to max 5 total team)
     btnAddMember.addEventListener("click", () => {
       if (crewList.length < MAX_CREW) {
         addCrewCard(crewList.length + 1, true);
@@ -442,7 +529,7 @@
     setupCharCounter("w_idea_summary", "cc_idea_summary", 10000);
     setupCharCounter("w_idea_desc", "cc_idea_desc", 50000);
 
-    // File upload
+    // File upload setup
     setupFileUpload();
 
     // Step 2 -> Step 3
@@ -462,6 +549,18 @@
     $("#editLinkLeader").addEventListener("click", () => goToStep(1));
     $("#editLinkCrew").addEventListener("click", () => goToStep(1));
     $("#editLinkIdea").addEventListener("click", () => goToStep(2));
+
+    // Milestone click navigation
+    stepMilestone1.addEventListener("click", () => goToStep(1));
+    stepMilestone2.addEventListener("click", () => {
+      if (validateStep1()) goToStep(2);
+    });
+    stepMilestone3.addEventListener("click", () => {
+      if (validateStep1() && validateStep2()) {
+        populateReview();
+        goToStep(3);
+      }
+    });
 
     // Terms modal
     $("#btnOpenTermsModal").addEventListener("click", (e) => {
@@ -493,6 +592,7 @@
     });
   }
 
+  // Requirement 12, 13, 15: File upload handling
   function setupFileUpload() {
     const dropzone = $("#dropzone");
     const fileInput = $("#w_idea_file");
@@ -500,6 +600,7 @@
     const box = $("#fileSelectedBox");
     const fileNameEl = $("#selectedFileName");
     const fileSizeEl = $("#selectedFileSize");
+    const fileLinkEl = $("#selectedFileLink");
     const btnRemove = $("#btnRemoveFile");
 
     btnBrowse.addEventListener("click", (e) => {
@@ -531,6 +632,10 @@
 
     btnRemove.addEventListener("click", () => {
       selectedFile = null;
+      if (selectedFileUrl) {
+        URL.revokeObjectURL(selectedFileUrl);
+        selectedFileUrl = null;
+      }
       fileInput.value = "";
       box.hidden = true;
       dropzone.hidden = false;
@@ -538,8 +643,9 @@
 
     function handleFileSelect(file) {
       const ext = "." + file.name.split(".").pop().toLowerCase();
-      if (![".pptx", ".ppt", ".pdf"].includes(ext)) {
-        showError("idea_presentation", `Invalid file type '${ext}'. Please choose a .pptx, .ppt, or .pdf file.`);
+      // Requirement 13: STRICTLY PPT and PPTX only
+      if (![".pptx", ".ppt"].includes(ext)) {
+        showError("idea_presentation", `Invalid file type '${ext}'. Strictly only .pptx and .ppt PowerPoint presentations are accepted.`);
         return;
       }
       if (file.size > 10 * 1024 * 1024) {
@@ -549,8 +655,19 @@
 
       selectedFile = file;
       $(`#err-idea_presentation`).textContent = "";
+
+      // Requirement 15: Create clickable preview link so student can view/open file
+      if (selectedFileUrl) URL.revokeObjectURL(selectedFileUrl);
+      selectedFileUrl = URL.createObjectURL(file);
+
       fileNameEl.textContent = file.name;
-      fileSizeEl.textContent = `${(file.size / (1024 * 1024)).toFixed(2)} MB`;
+      fileSizeEl.textContent = `${(file.size / (1024 * 1024)).toFixed(2)} MB · Click name to preview`;
+
+      if (fileLinkEl) {
+        fileLinkEl.href = selectedFileUrl;
+        fileLinkEl.download = file.name;
+      }
+
       dropzone.hidden = true;
       box.hidden = false;
     }
@@ -607,14 +724,13 @@
       if (!res.ok) {
         if (data.errors) {
           showFieldErrors(form, data.errors);
-          // If error is in Step 1 or 2, jump there
           if (Object.keys(data.errors).some((k) => k.startsWith("team") || k.startsWith("leader") || k.startsWith("member"))) {
             goToStep(1);
           } else if (Object.keys(data.errors).some((k) => k.startsWith("idea"))) {
             goToStep(2);
           }
         } else {
-          alert(data.message || "Registration failed. Please check your entries.");
+          alert(data.message || data.detail || "Registration failed. Please check your entries.");
         }
         setLoading(btnSubmitPayment, false);
         return;
@@ -635,6 +751,7 @@
     // Check if Sandbox Simulator
     if (order.is_sandbox) {
       $("#sbxOrderId").textContent = order.order_id;
+      $("#sbxAmountPayable").textContent = `₹${(order.amount / 100).toFixed(2)}`;
       sandboxModal.open();
 
       $("#btnSimulateSuccess").onclick = async () => {
@@ -660,7 +777,7 @@
       amount: order.amount,
       currency: order.currency,
       name: "JM Vertex Hackathon 2027",
-      description: `Team Registration: ${data.team_name}`,
+      description: `Team Registration: ${data.team_name} (${data.member_count} participants)`,
       order_id: order.order_id,
       prefill: {
         name: data.leader_name,

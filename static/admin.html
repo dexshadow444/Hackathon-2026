@@ -20,9 +20,9 @@
     <div class="admin-nav-left">
       <a class="brand" href="/admin" style="font-size:1.15rem; gap:0.6rem;">
         <span class="brand-mark">⚡</span>
-        <span>JM Vertex Admin</span>
+        <span>JM Vertex Admin Portal</span>
       </a>
-      <span class="badge-status shortlisted" style="font-size:0.75rem;">OPERATIONAL</span>
+      <span class="badge-status shortlisted" style="font-size:0.75rem;">OPERATIONAL · POLLACHI</span>
     </div>
 
     <div class="admin-nav-right">
@@ -126,6 +126,7 @@
             <th style="width:60px; text-align:center;">Crew</th>
             <th style="width:130px; text-align:center;">Payment</th>
             <th style="width:120px; text-align:center;">Review</th>
+            <!-- Requirement 17: Action button changed from Dossier to View -->
             <th style="width:140px; text-align:right;">Actions</th>
           </tr>
         </thead>
@@ -137,22 +138,65 @@
       </table>
     </div>
 
+    <!-- Requirement 18: Admin Action / Audit Trail Section -->
+    <div style="margin-top: 3.5rem;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.2rem; flex-wrap:wrap; gap:1rem;">
+        <div>
+          <span class="section-tag">COMPLIANCE & AUDIT TRAIL</span>
+          <h2 style="font-size:1.4rem; color:var(--green-dark); margin:0;">Admin Action & Modification History</h2>
+          <p class="muted" style="margin:0.2rem 0 0; font-size:0.88rem;">Each modification made by administrators is securely recorded with timestamps.</p>
+        </div>
+        <button type="button" class="btn btn-outline btn-sm" id="btnRefreshAudit">
+          ↻ Refresh Action Log
+        </button>
+      </div>
+
+      <div class="admin-table-container">
+        <table class="admin-data-table">
+          <thead>
+            <tr>
+              <th style="width:160px;">Timestamp (UTC)</th>
+              <th style="width:110px;">Admin User</th>
+              <th style="width:140px;">Team Code</th>
+              <th style="width:170px;">Action Type</th>
+              <th>Changes Summary</th>
+              <th style="width:200px;">Notes / Reason</th>
+            </tr>
+          </thead>
+          <tbody id="auditTableBody">
+            <tr>
+              <td colspan="6" style="text-align:center; padding:2rem;" class="muted">Loading action history...</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
   </main>
 
-  <!-- ==================== TEAM DOSSIER MODAL ==================== -->
+  <!-- ==================== TEAM VIEW & EDIT MODAL ==================== -->
   <div class="modal-overlay" id="dossierModal">
-    <div class="modal-content">
+    <div class="modal-content" style="max-width:920px;">
       <div class="modal-head">
         <div>
           <span class="badge-status shortlisted" id="dosTeamCode" style="margin-bottom:0.4rem;">HACK-27-000-0000</span>
-          <h2 id="dosTeamName" style="color:var(--green-dark); margin:0.3rem 0 0.2rem; font-size:1.6rem;">Team Dossier</h2>
+          <h2 id="dosTeamName" style="color:var(--green-dark); margin:0.3rem 0 0.2rem; font-size:1.6rem;">Team Details</h2>
           <p id="dosCollege" class="muted" style="margin:0; font-size:0.92rem;"></p>
         </div>
-        <button type="button" class="modal-close-btn modal-close-trigger" aria-label="Close modal">&times;</button>
+        <div style="display:flex; align-items:center; gap:0.8rem;">
+          <!-- Requirement 18: Toggle Edit Details button -->
+          <button type="button" class="btn btn-primary btn-sm" id="btnToggleEditMode">
+            ✎ Edit Participant Details
+          </button>
+          <button type="button" class="modal-close-btn modal-close-trigger" aria-label="Close modal">&times;</button>
+        </div>
       </div>
 
-      <!-- Dossier Body -->
-      <div style="display:grid; gap:1.25rem;">
+      <!-- Live Save Feedback Alert -->
+      <div id="modalAlertBox" style="padding:0.75rem 1rem; border-radius:8px; margin-bottom:1rem; font-size:0.9rem; font-weight:600; display:none;"></div>
+
+      <!-- ==================== VIEW MODE ==================== -->
+      <div id="viewModeContainer" style="display:grid; gap:1.25rem;">
 
         <!-- Review Decision & Evaluator Notes Box (Instant Auto-Save) -->
         <div class="dossier-review-box">
@@ -221,7 +265,7 @@
             <h4>Project Proposal & Deck</h4>
             <a id="dosDownloadFileBtn" class="btn btn-cyan btn-sm" href="#" target="_blank">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-              Download Presentation File
+              View / Download Presentation (.PPT)
             </a>
           </div>
           <div style="margin-bottom:1rem;">
@@ -259,6 +303,118 @@
         </div>
 
       </div>
+
+      <!-- ==================== EDIT PARTICIPANT DETAILS MODE ==================== -->
+      <div id="editModeContainer" style="display:none;">
+        <form id="adminEditForm">
+          <div class="dossier-section">
+            <h4 style="color:var(--green-dark); margin-bottom:1rem;">Edit Team Information</h4>
+            <div class="form-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+              <div class="field">
+                <label>Team Name</label>
+                <input type="text" id="editTeamName" class="admin-input-control" style="width:100%;" required>
+              </div>
+              <div class="field">
+                <label>College / Institution</label>
+                <input type="text" id="editCollegeName" class="admin-input-control" style="width:100%;" required>
+              </div>
+            </div>
+
+            <div class="field" style="margin-top:0.5rem;">
+              <label>Challenge Track</label>
+              <select id="editTrack" class="admin-input-control" style="width:100%;">
+                <option value="Human Safety, Rights & Empowerment">Human Safety, Rights & Empowerment</option>
+                <option value="Health, Education & Digital Innovation">Health, Education & Digital Innovation</option>
+                <option value="Sustainability, Smart Communities & Social Entrepreneurship">Sustainability, Smart Communities & Social Entrepreneurship</option>
+                <option value="AI in Hospitality and Management">AI in Hospitality and Management</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="dossier-section">
+            <h4 style="color:var(--green-dark); margin-bottom:1rem;">Edit Team Leader</h4>
+            <div class="form-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:1rem;">
+              <div class="field">
+                <label>Leader Full Name</label>
+                <input type="text" id="editLeaderName" class="admin-input-control" style="width:100%;" required>
+              </div>
+              <div class="field">
+                <label>Leader Mobile</label>
+                <input type="text" id="editLeaderPhone" class="admin-input-control" style="width:100%;" required maxlength="10">
+              </div>
+            </div>
+            <div class="form-grid" style="display:grid; grid-template-columns:1.2fr 1fr 1fr; gap:1rem; margin-top:0.5rem;">
+              <div class="field">
+                <label>Leader Email</label>
+                <input type="email" id="editLeaderEmail" class="admin-input-control" style="width:100%;" required>
+              </div>
+              <div class="field">
+                <label>Department</label>
+                <input type="text" id="editLeaderDept" class="admin-input-control" style="width:100%;">
+              </div>
+              <div class="field">
+                <label>Year of Study</label>
+                <select id="editLeaderYear" class="admin-input-control" style="width:100%;">
+                  <option value="1st Year">1st Year</option>
+                  <option value="2nd Year">2nd Year</option>
+                  <option value="3rd Year">3rd Year</option>
+                  <option value="4th Year">4th Year</option>
+                  <option value="Postgraduate">Postgraduate</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="dossier-section">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
+              <h4 style="color:var(--green-dark); margin:0;">Edit Crew Members (1 to 4 members)</h4>
+              <button type="button" class="btn btn-outline btn-sm" id="btnAdminAddCrew">+ Add Crew Member</button>
+            </div>
+            <div id="editCrewContainer" style="display:grid; gap:0.9rem;">
+              <!-- Dynamic edit crew cards -->
+            </div>
+          </div>
+
+          <div class="dossier-section">
+            <h4 style="color:var(--green-dark); margin-bottom:1rem;">Edit Project Submission</h4>
+            <div class="field">
+              <label>Idea Title</label>
+              <input type="text" id="editIdeaTitle" class="admin-input-control" style="width:100%;" required maxlength="100">
+            </div>
+            <div class="field" style="margin-top:0.5rem;">
+              <label>Executive Abstract</label>
+              <textarea id="editIdeaSummary" class="admin-input-control" style="width:100%; height:80px;" required></textarea>
+            </div>
+            <div class="field" style="margin-top:0.5rem;">
+              <label>Technical Architecture Scope</label>
+              <textarea id="editIdeaDesc" class="admin-input-control" style="width:100%; height:120px;" required></textarea>
+            </div>
+          </div>
+
+          <div class="dossier-section">
+            <h4 style="color:var(--green-dark); margin-bottom:1rem;">Audit & Reason</h4>
+            <div class="form-grid" style="display:grid; grid-template-columns:200px 1fr; gap:1rem;">
+              <div class="field">
+                <label>Payment Status</label>
+                <select id="editPaymentStatus" class="admin-input-control" style="width:100%;">
+                  <option value="pending">Pending</option>
+                  <option value="paid">Paid</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Reason for Modification (Recorded in Audit Table)</label>
+                <input type="text" id="editReasonNote" class="admin-input-control" style="width:100%;" placeholder="e.g. Corrected student phone number upon request">
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex; justify-content:flex-end; gap:1rem; margin-top:1.5rem;">
+            <button type="button" class="btn btn-outline" id="btnCancelEdit">Cancel</button>
+            <button type="submit" class="btn btn-primary" id="btnSaveParticipantChanges">Save Changes & Audit Log ✓</button>
+          </div>
+        </form>
+      </div>
+
     </div>
   </div>
 
@@ -269,6 +425,7 @@
       const dossierModal = setupModal("dossierModal");
       let allRegistrations = [];
       let currentActiveRegId = null;
+      let isEditMode = false;
 
       async function checkAuth() {
         try {
@@ -332,10 +489,10 @@
 
         regs.forEach((r, idx) => {
           const tr = document.createElement("tr");
-
           const pStatus = (r.payment_status || "pending").toLowerCase();
           const rStatus = (r.review_status || "submitted").toLowerCase();
 
+          // Requirement 17: Changed action button from Dossier to View
           tr.innerHTML = `
             <td style="text-align:center; color:var(--text-muted); font-size:0.85rem;" class="mono">${idx + 1}</td>
             <td class="mono" style="font-weight:700; color:var(--green-dark);">${r.team_code}</td>
@@ -355,26 +512,75 @@
             </td>
             <td style="text-align:right; white-space:nowrap;">
               <div style="display:inline-flex; gap:0.4rem; justify-content:flex-end;">
-                <button type="button" class="btn btn-outline btn-sm btn-dossier" data-id="${r.id}" style="padding:0.35rem 0.75rem; font-size:0.82rem;">Dossier</button>
+                <button type="button" class="btn btn-outline btn-sm btn-view-dossier" data-id="${r.id}" style="padding:0.35rem 0.8rem; font-size:0.82rem; font-weight:700;">View</button>
                 <button type="button" class="btn btn-outline btn-sm btn-del" data-id="${r.id}" style="padding:0.35rem 0.65rem; font-size:0.82rem; color:var(--error); border-color:var(--error);">Delete</button>
               </div>
             </td>
           `;
-
           tbody.appendChild(tr);
         });
 
-        // Attach listeners
-        tbody.querySelectorAll(".btn-dossier").forEach((b) => {
-          b.addEventListener("click", () => openDossier(b.dataset.id));
+        tbody.querySelectorAll(".btn-view-dossier").forEach((b) => {
+          b.addEventListener("click", () => openViewModal(b.dataset.id));
         });
         tbody.querySelectorAll(".btn-del").forEach((b) => {
           b.addEventListener("click", () => deleteTeam(b.dataset.id));
         });
       }
 
-      async function openDossier(regId) {
+      // Requirement 18: Load Action Audit Logs
+      async function loadAuditLogs() {
+        const tbody = $("#auditTableBody");
+        try {
+          const res = await getJSON("/api/admin/audit-logs?limit=100");
+          const logs = res.logs || [];
+          tbody.replaceChildren();
+
+          if (logs.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:2rem;" class="muted">No modification logs recorded yet.</td></tr>';
+            return;
+          }
+
+          logs.forEach((log) => {
+            const tr = document.createElement("tr");
+
+            // Format changes summary
+            let changesSummary = "";
+            const ch = log.changes || {};
+            if (Object.keys(ch).length > 0) {
+              changesSummary = Object.entries(ch).map(([k, v]) => {
+                if (typeof v === "object" && v !== null && "from" in v && "to" in v) {
+                  return `<strong>${k}</strong>: <em>${v.from}</em> → <span style="color:var(--green); font-weight:600;">${v.to}</span>`;
+                }
+                return `<strong>${k}</strong>: ${JSON.stringify(v)}`;
+              }).join("<br>");
+            } else {
+              changesSummary = "<span class='muted'>No field diff</span>";
+            }
+
+            tr.innerHTML = `
+              <td class="mono" style="font-size:0.8rem; color:var(--text-muted);">${fmt(log.created_at, DATETIME)}</td>
+              <td><span class="badge-status shortlisted" style="font-size:0.75rem;">${log.admin_user}</span></td>
+              <td class="mono" style="font-weight:700; color:var(--green-dark);">${log.team_code || "–"}</td>
+              <td><strong style="font-size:0.82rem; color:var(--text);">${log.action_type}</strong></td>
+              <td style="font-size:0.84rem; line-height:1.5;">${changesSummary}</td>
+              <td style="font-size:0.84rem; color:var(--text-muted);">${log.notes || "–"}</td>
+            `;
+            tbody.appendChild(tr);
+          });
+        } catch (e) {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; color:var(--error); padding:1.5rem;">Could not load audit history.</td></tr>';
+        }
+      }
+
+      function openViewModal(regId) {
         currentActiveRegId = regId;
+        isEditMode = false;
+        $("#viewModeContainer").style.display = "grid";
+        $("#editModeContainer").style.display = "none";
+        $("#btnToggleEditMode").textContent = "✎ Edit Participant Details";
+        $("#modalAlertBox").style.display = "none";
+
         const reg = allRegistrations.find((x) => x.id === regId);
         if (!reg) return;
 
@@ -401,7 +607,7 @@
         if (members.length > 0) {
           members.forEach((m, i) => {
             const item = el("div", {
-              style: "display:flex; justify-content:space-between; align-items:center; padding:0.5rem 0.9rem; background:#F4F8FA; border:1px solid #E3EFF3; border-radius:8px; font-size:0.88rem;",
+              style: "display:flex; justify-content:space-between; align-items:center; padding:0.55rem 0.95rem; background:#F4F8FA; border:1px solid #E3EFF3; border-radius:8px; font-size:0.88rem;",
             });
             item.innerHTML = `
               <div><strong>#${i + 1} ${m.name}</strong> <span class="muted">(${m.department || "General"} · ${m.year})</span></div>
@@ -409,6 +615,8 @@
             `;
             membersDiv.appendChild(item);
           });
+        } else {
+          membersDiv.innerHTML = '<span class="muted" style="font-size:0.88rem;">No additional crew members</span>';
         }
 
         $("#dosIdeaTitle").textContent = reg.idea_title;
@@ -426,6 +634,202 @@
         $("#dosTermsVer").textContent = reg.terms_version || "v1";
 
         dossierModal.open();
+      }
+
+      // Requirement 18: Populate and switch to Edit Mode
+      function setupEditMode() {
+        const toggleBtn = $("#btnToggleEditMode");
+        const cancelBtn = $("#btnCancelEdit");
+        const form = $("#adminEditForm");
+
+        toggleBtn.addEventListener("click", () => {
+          if (!isEditMode) {
+            enterEditMode();
+          } else {
+            exitEditMode();
+          }
+        });
+
+        cancelBtn.addEventListener("click", exitEditMode);
+
+        function enterEditMode() {
+          const reg = allRegistrations.find((x) => x.id === currentActiveRegId);
+          if (!reg) return;
+
+          isEditMode = true;
+          $("#viewModeContainer").style.display = "none";
+          $("#editModeContainer").style.display = "block";
+          toggleBtn.textContent = "👁️ View Details Mode";
+
+          // Populate form fields
+          $("#editTeamName").value = reg.team_name || "";
+          $("#editCollegeName").value = reg.college_name || "";
+          $("#editTrack").value = reg.track || "Human Safety, Rights & Empowerment";
+
+          $("#editLeaderName").value = reg.leader_name || "";
+          $("#editLeaderPhone").value = reg.leader_phone || "";
+          $("#editLeaderEmail").value = reg.leader_email || "";
+          $("#editLeaderDept").value = reg.leader_department || "";
+          $("#editLeaderYear").value = reg.leader_year || "3rd Year";
+
+          $("#editIdeaTitle").value = reg.idea_title || "";
+          $("#editIdeaSummary").value = reg.idea_summary || "";
+          $("#editIdeaDesc").value = reg.idea_description || "";
+
+          $("#editPaymentStatus").value = reg.payment_status || "pending";
+          $("#editReasonNote").value = "";
+
+          // Populate editable crew members
+          renderEditCrewMembers(reg.members_data || []);
+        }
+
+        function exitEditMode() {
+          isEditMode = false;
+          $("#viewModeContainer").style.display = "grid";
+          $("#editModeContainer").style.display = "none";
+          toggleBtn.textContent = "✎ Edit Participant Details";
+        }
+
+        // Add Crew Member in Admin Edit
+        $("#btnAdminAddCrew").addEventListener("click", () => {
+          const container = $("#editCrewContainer");
+          if (container.querySelectorAll(".admin-crew-card").length >= 4) {
+            alert("Maximum 4 crew members allowed (5 total team size).");
+            return;
+          }
+          addAdminCrewCard({ name: "", mobile: "", email: "", department: "", year: "3rd Year" });
+        });
+
+        form.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          const saveBtn = $("#btnSaveParticipantChanges");
+          saveBtn.disabled = true;
+          saveBtn.textContent = "Saving Changes...";
+
+          // Collect crew members
+          const members = [];
+          $("#editCrewContainer").querySelectorAll(".admin-crew-card").forEach((card) => {
+            members.push({
+              name: card.querySelector(".ac-name").value.trim(),
+              mobile: card.querySelector(".ac-mobile").value.trim(),
+              email: card.querySelector(".ac-email").value.trim(),
+              department: card.querySelector(".ac-dept").value.trim(),
+              year: card.querySelector(".ac-year").value,
+            });
+          });
+
+          const payload = {
+            team_name: $("#editTeamName").value.trim(),
+            college_name: $("#editCollegeName").value.trim(),
+            track: $("#editTrack").value,
+            leader_name: $("#editLeaderName").value.trim(),
+            leader_phone: $("#editLeaderPhone").value.trim(),
+            leader_email: $("#editLeaderEmail").value.trim(),
+            leader_department: $("#editLeaderDept").value.trim(),
+            leader_year: $("#editLeaderYear").value,
+            members_data: members,
+            idea_title: $("#editIdeaTitle").value.trim(),
+            idea_summary: $("#editIdeaSummary").value.trim(),
+            idea_description: $("#editIdeaDesc").value.trim(),
+            payment_status: $("#editPaymentStatus").value,
+            edit_reason: $("#editReasonNote").value.trim() || "Admin updated participant details",
+          };
+
+          try {
+            const res = await fetch(`/api/admin/registration/${currentActiveRegId}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify(payload),
+            });
+            const data = await res.json();
+
+            if (res.ok && data.ok) {
+              // Update local state
+              const idx = allRegistrations.findIndex((r) => r.id === currentActiveRegId);
+              if (idx !== -1) {
+                allRegistrations[idx] = data.registration;
+              }
+              renderTable(allRegistrations);
+              loadMetrics();
+              loadAuditLogs();
+
+              const alertBox = $("#modalAlertBox");
+              alertBox.style.display = "block";
+              alertBox.style.background = "#E6F6EC";
+              alertBox.style.color = "#0F6B3F";
+              alertBox.style.border = "1px solid #BFE6CD";
+              alertBox.textContent = "✓ Participant details successfully updated and recorded in action audit log!";
+
+              exitEditMode();
+              openViewModal(currentActiveRegId);
+            } else {
+              alert(data.detail || "Update failed.");
+            }
+          } catch (err) {
+            alert("Network error updating participant details.");
+          } finally {
+            saveBtn.disabled = false;
+            saveBtn.textContent = "Save Changes & Audit Log ✓";
+          }
+        });
+      }
+
+      function renderEditCrewMembers(members) {
+        const container = $("#editCrewContainer");
+        container.replaceChildren();
+        members.forEach((m) => addAdminCrewCard(m));
+      }
+
+      function addAdminCrewCard(m) {
+        const container = $("#editCrewContainer");
+        const idx = container.querySelectorAll(".admin-crew-card").length + 1;
+        const card = el("div", {
+          class: "admin-crew-card",
+          style: "background:#F8FBFC; border:1.5px solid #CFE5EC; border-radius:10px; padding:1rem;",
+        });
+
+        card.innerHTML = `
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+            <strong style="color:var(--green-dark); font-size:0.9rem;">Crew Member #${idx}</strong>
+            <button type="button" class="btn-remove-member btn-del-crew" style="font-size:0.8rem;">Remove</button>
+          </div>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
+            <div>
+              <small class="muted">Name</small>
+              <input type="text" class="ac-name admin-input-control" style="width:100%; height:38px;" value="${m.name || ""}" required>
+            </div>
+            <div>
+              <small class="muted">Mobile</small>
+              <input type="tel" class="ac-mobile admin-input-control" style="width:100%; height:38px;" value="${m.mobile || ""}" required maxlength="10">
+            </div>
+          </div>
+          <div style="display:grid; grid-template-columns:1.2fr 1fr 1fr; gap:0.75rem; margin-top:0.5rem;">
+            <div>
+              <small class="muted">Email</small>
+              <input type="email" class="ac-email admin-input-control" style="width:100%; height:38px;" value="${m.email || ""}" required>
+            </div>
+            <div>
+              <small class="muted">Department</small>
+              <input type="text" class="ac-dept admin-input-control" style="width:100%; height:38px;" value="${m.department || ""}">
+            </div>
+            <div>
+              <small class="muted">Year</small>
+              <select class="ac-year admin-input-control" style="width:100%; height:38px;">
+                <option value="1st Year" ${m.year === "1st Year" ? "selected" : ""}>1st Year</option>
+                <option value="2nd Year" ${m.year === "2nd Year" ? "selected" : ""}>2nd Year</option>
+                <option value="3rd Year" ${(!m.year || m.year === "3rd Year") ? "selected" : ""}>3rd Year</option>
+                <option value="4th Year" ${m.year === "4th Year" ? "selected" : ""}>4th Year</option>
+                <option value="Postgraduate" ${m.year === "Postgraduate" ? "selected" : ""}>Postgraduate</option>
+              </select>
+            </div>
+          </div>
+        `;
+
+        card.querySelector(".btn-del-crew").addEventListener("click", () => {
+          card.remove();
+        });
+
+        container.appendChild(card);
       }
 
       // Auto-save Review Status and Admin Notes
@@ -449,6 +853,7 @@
               found.review_status = select.value;
               found.admin_notes = notes.value.trim();
               renderTable(allRegistrations);
+              loadAuditLogs();
             }
           } catch {
             statusInd.textContent = "Error saving";
@@ -466,7 +871,7 @@
         const reg = allRegistrations.find((r) => r.id === regId);
         if (!reg) return;
 
-        const confirmed = confirm(`Are you sure you want to PERMANENTLY delete team "${reg.team_name}" (${reg.team_code}) and its uploaded presentation? This cannot be undone.`);
+        const confirmed = confirm(`Are you sure you want to PERMANENTLY delete team "${reg.team_name}" (${reg.team_code}) and its uploaded presentation? This will be recorded in the action audit log.`);
         if (!confirmed) return;
 
         try {
@@ -475,6 +880,7 @@
             allRegistrations = allRegistrations.filter((r) => r.id !== regId);
             renderTable(allRegistrations);
             loadMetrics();
+            loadAuditLogs();
           } else {
             alert("Delete failed.");
           }
@@ -498,14 +904,18 @@
           await postJSON("/api/admin/logout", {});
           window.location.href = "/admin/login";
         });
+
+        $("#btnRefreshAudit").addEventListener("click", loadAuditLogs);
       }
 
       async function init() {
         await checkAuth();
         await loadMetrics();
         await loadRegistrations();
+        await loadAuditLogs();
         setupSearchAndFilters();
         setupAutoSave();
+        setupEditMode();
       }
 
       init();

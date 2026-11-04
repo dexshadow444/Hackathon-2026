@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Annotated, Any, Dict, List, Optional
 
 from fastapi import APIRouter, File, Form, HTTPException, Query, Request, UploadFile
-from fastapi.responses import FileResponse, JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from pydantic import BaseModel, EmailStr, StringConstraints, field_validator
 
 from .. import content
@@ -17,6 +17,7 @@ from ..limiter import limiter
 from ..services import (
     create_payment_order,
     generate_team_code,
+    get_presentation_file_path,
     registration_info,
     registration_state,
     save_uploaded_presentation,
@@ -51,16 +52,18 @@ def get_config():
     s = settings
     return {
         "event": {
-            "name": content.EVENT_NAME,
-            "tagline": content.TAGLINE,
-            "organiser": content.ORGANISER,
-            "venue": content.VENUE,
+            "name": s.EVENT_NAME,
+            "tagline": s.TAGLINE,
+            "organiser": s.ORGANISER,
+            "venue": s.VENUE,
+            "location": s.EVENT_LOCATION,
             "about": content.ABOUT,
             "start": s.HACKATHON_START_DATE.isoformat(),
             "end": s.HACKATHON_END_DATE.isoformat(),
         },
         "tracks": content.TRACKS,
-        "fee_inr": s.REGISTRATION_FEE_INR,
+        "fee_per_member_inr": s.REGISTRATION_FEE_PER_MEMBER_INR,
+        "fee_inr": s.REGISTRATION_FEE_PER_MEMBER_INR,
         "team_size": {"min": s.MIN_TEAM_MEMBERS, "max": s.MAX_TEAM_MEMBERS},
         "timeline": [
             {"label": "Registration opens", "at": s.REGISTRATION_OPEN_DATE.isoformat()},
@@ -71,6 +74,7 @@ def get_config():
         "faq": [{"q": q, "a": a} for q, a in content.FAQ],
         "contact": {"email": s.CONTACT_EMAIL, "phone": s.CONTACT_PHONE},
         "registration": registration_info(),
+        "google_drive_folder_url": s.GOOGLE_DRIVE_FOLDER_URL,
         "terms": {
             "version": TERMS_VERSION,
             "checkbox_label": TERMS_CHECKBOX_LABEL,
@@ -150,11 +154,9 @@ def download_idea_template():
 @limiter.limit("15/minute")
 async def register_team(
     request: Request,
-    # Team Details
     team_name: str = Form(...),
     college_name: str = Form(...),
     track: str = Form(...),
-    # Leader Details
     leader_name: str = Form(...),
     leader_email: str = Form(...),
     leader_phone: str = Form(...),
@@ -162,14 +164,11 @@ async def register_team(
     leader_year: str = Form(...),
     leader_gender: Optional[str] = Form(None),
     leader_id_number: Optional[str] = Form(None),
-    # Crew Members (JSON string)
     members_data: str = Form(...),
-    # Idea Submission
     idea_title: str = Form(...),
     idea_summary: str = Form(...),
     idea_description: str = Form(...),
     idea_presentation: UploadFile = File(...),
-    # Terms Consent (MANDATORY)
     terms_accepted: str = Form(...),
 ):
     # 1. Check registration availability
@@ -221,7 +220,7 @@ async def register_team(
     if not leader_year:
         raise HTTPException(status_code=422, detail={"leader_year": "Leader year of study is required."})
 
-    # 4. Validate Members (Crew: 3 to 5 members => total team size 4 to 6)
+    # 4. Validate Members (Crew: 1 to 4 members => total team size 2 to 5)
     try:
         members_list = json.loads(members_data)
         if not isinstance(members_list, list):
@@ -233,7 +232,7 @@ async def register_team(
     if not (settings.MIN_TEAM_MEMBERS <= total_team_size <= settings.MAX_TEAM_MEMBERS):
         raise HTTPException(
             status_code=422,
-            detail={"member_count": f"Total team size must be between {settings.MIN_TEAM_MEMBERS} and {settings.MAX_TEAM_MEMBERS} members (including leader). Currently: {total_team_size}."}
+            detail={"member_count": f"Total team size must be between {settings.MIN_TEAM_MEMBERS} and {settings.MAX_TEAM_MEMBERS} students (including leader). Currently: {total_team_size}."}
         )
 
     # Validate each member
@@ -272,15 +271,21 @@ async def register_team(
     if not (1 <= len(idea_description) <= 50000):
         raise HTTPException(status_code=422, detail={"idea_description": "Idea description must be between 1 and 50,000 characters."})
 
-    # 6. Save presentation file securely
-    orig_filename, stored_path = await save_uploaded_presentation(idea_presentation)
-
-    # 7. Generate unique team code and record pending registration
+    # 6. Generate unique team code first for file and payment linking
     team_code = generate_team_code()
-    terms_now = datetime.now(timezone.utc).isoformat()
+
+    # 7. Save presentation file securely & link to Google Drive
+    orig_filename, stored_path, drive_id, drive_link = await save_uploaded_presentation(
+        idea_presentation, team_code=team_code
+    )
+
+    # 8. Dynamic Fee Calculation (₹99 per member)
+    total_fee_inr = total_team_size * settings.REGISTRATION_FEE_PER_MEMBER_INR
 
     # Create payment order (Razorpay or Sandbox)
-    payment_order = create_payment_order(team_code, settings.REGISTRATION_FEE_INR)
+    payment_order = create_payment_order(team_code, total_fee_inr)
+
+    terms_now = datetime.now(timezone.utc).isoformat()
 
     registration_record = {
         "team_code": team_code,
@@ -301,6 +306,8 @@ async def register_team(
         "idea_description": idea_description,
         "idea_ppt_filename": orig_filename,
         "idea_ppt_path": stored_path,
+        "google_drive_file_id": drive_id,
+        "google_drive_web_link": drive_link,
         "terms_accepted": True,
         "terms_version": TERMS_VERSION,
         "terms_accepted_at": terms_now,
@@ -318,11 +325,15 @@ async def register_team(
         "ok": True,
         "team_code": team_code,
         "order": payment_order,
-        "amount_inr": settings.REGISTRATION_FEE_INR,
+        "amount_inr": total_fee_inr,
+        "fee_per_member": settings.REGISTRATION_FEE_PER_MEMBER_INR,
+        "member_count": total_team_size,
         "team_name": team_name,
         "leader_name": leader_name,
         "leader_email": leader_email,
         "leader_phone": leader_phone_clean,
+        "presentation_filename": orig_filename,
+        "drive_link": drive_link or settings.GOOGLE_DRIVE_FOLDER_URL,
     }
 
 
@@ -334,12 +345,10 @@ class PaymentVerifyIn(BaseModel):
 
 @router.post("/api/payment/verify")
 def verify_registration_payment(body: PaymentVerifyIn):
-    # Lookup registration by order id
     reg = Repository.get_registration_by_order_id(body.razorpay_order_id)
     if not reg:
         raise HTTPException(status_code=404, detail="Registration order not found.")
 
-    # Server-side verification: never trust the browser
     is_valid = verify_payment(
         body.razorpay_order_id,
         body.razorpay_payment_id,
@@ -348,8 +357,10 @@ def verify_registration_payment(body: PaymentVerifyIn):
     if not is_valid:
         raise HTTPException(status_code=400, detail="Payment verification failed or signature is invalid.")
 
-    # Mark as paid
-    fee = float(settings.REGISTRATION_FEE_INR)
+    # Calculate expected fee based on team member count
+    member_cnt = reg.get("member_count") or (len(reg.get("members_data") or []) + 1)
+    fee = float(member_cnt * settings.REGISTRATION_FEE_PER_MEMBER_INR)
+
     Repository.mark_payment_successful(
         reg_id=reg["id"],
         payment_id=body.razorpay_payment_id,
@@ -371,7 +382,6 @@ def get_public_registration(team_code: str):
     if not reg:
         raise HTTPException(status_code=404, detail="Team code not found.")
 
-    # Return safe public fields for the confirmation ticket
     return {
         "team_code": reg["team_code"],
         "team_name": reg["team_name"],
@@ -386,6 +396,7 @@ def get_public_registration(team_code: str):
         "members": reg.get("members_data") or [],
         "idea_title": reg["idea_title"],
         "idea_ppt_filename": reg.get("idea_ppt_filename"),
+        "google_drive_web_link": reg.get("google_drive_web_link") or settings.GOOGLE_DRIVE_FOLDER_URL,
         "amount_paid": reg.get("amount_paid", 0),
         "payment_status": reg.get("payment_status", "pending"),
         "payment_id": reg.get("razorpay_payment_id", "SANDBOX_VERIFIED"),
@@ -393,3 +404,51 @@ def get_public_registration(team_code: str):
         "terms_accepted_at": reg.get("terms_accepted_at"),
         "terms_version": reg.get("terms_version", TERMS_VERSION),
     }
+
+
+# Requirement 15: Student can view their uploaded presentation by clicking the filename
+@router.get("/api/file/view/{team_code}")
+def view_uploaded_presentation(team_code: str):
+    reg = Repository.get_registration_by_team_code(team_code)
+    if not reg:
+        raise HTTPException(status_code=404, detail="Team not found.")
+
+    stored_path = reg.get("idea_ppt_path")
+    original_name = reg.get("idea_ppt_filename") or f"{team_code}_presentation.pptx"
+
+    if not stored_path:
+        # Check if direct Google Drive link exists
+        if reg.get("google_drive_web_link"):
+            return RedirectResponse(reg["google_drive_web_link"])
+        raise HTTPException(status_code=404, detail="No file attached to this registration.")
+
+    # Supabase signed URL redirect if used
+    if settings.has_supabase:
+        try:
+            from ..db import get_supabase_client
+            client = get_supabase_client()
+            signed_url_res = client.storage.from_(settings.SUPABASE_BUCKET).create_signed_url(stored_path, 300)
+            if signed_url_res and "signedURL" in signed_url_res:
+                return RedirectResponse(signed_url_res["signedURL"])
+        except Exception:
+            pass
+
+    # Local file serve
+    local_path = get_presentation_file_path(stored_path)
+    if not local_path or not local_path.exists():
+        if reg.get("google_drive_web_link"):
+            return RedirectResponse(reg["google_drive_web_link"])
+        raise HTTPException(status_code=404, detail="File could not be found.")
+
+    media_type = (
+        "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+        if original_name.endswith(".pptx")
+        else "application/vnd.ms-powerpoint"
+    )
+
+    return FileResponse(
+        path=local_path,
+        filename=original_name,
+        media_type=media_type,
+        headers={"Content-Disposition": f'inline; filename="{original_name}"'}
+    )

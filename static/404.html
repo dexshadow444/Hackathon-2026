@@ -3,15 +3,49 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Page not found</title>
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap">
+  <title>404 · Signal Lost · JM Vertex Hackathon 2027</title>
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23147A47'/%3E%3Cpath d='M8 8 L24 24 M24 8 L8 24' stroke='%235BB8E8' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">
+
+  <!-- Fonts & Theme CSS -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="/static/css/theme.css">
 </head>
-<body>
-  <main class="gate"><div class="gate-card">
-    <h1 style="font-size:1.8rem">We could not find that page</h1>
-    <p class="muted">The link may be wrong or the page may have moved. Check the team code and try again.</p>
-    <a class="btn btn-primary" href="/">Go to the event page</a>
-  </div></main>
+<body style="min-height:100vh; display:flex; flex-direction:column; justify-content:space-between; background: linear-gradient(180deg, #FFFFFF 0%, var(--blue-pale) 100%);">
+
+  <header class="nav">
+    <div class="container nav-inner">
+      <a class="brand" href="/">
+        <span class="brand-mark">⚡</span>
+        <span>JM Vertex Hackathon</span>
+      </a>
+      <a class="btn btn-outline btn-sm" href="/">Return to Event Page</a>
+    </div>
+  </header>
+
+  <main class="container" style="padding: 4rem 1rem; text-align:center; max-width:640px;">
+    <div class="glass-panel" style="padding: 3.5rem 2rem;">
+      <div style="font-family:var(--font-mono); font-size:5.5rem; font-weight:900; color:var(--green-dark); line-height:1; margin-bottom:1rem; letter-spacing:-0.04em;">
+        404
+      </div>
+      <span class="section-tag">COORDINATES NOT FOUND</span>
+      <h1 style="font-size:1.8rem; color:var(--green-dark); margin:0.5rem 0 1rem;">Protocol Navigation Error</h1>
+      <p class="muted" style="font-size:1rem; line-height:1.6; margin-bottom:2rem;">
+        The requested pathway or team resource could not be found. It may have been relocated, or the URL address was mistyped.
+      </p>
+      <div style="display:flex; justify-content:center; gap:1rem; flex-wrap:wrap;">
+        <a class="btn btn-primary" href="/">Go to Event Homepage</a>
+        <a class="btn btn-outline" href="/register">Team Registration</a>
+      </div>
+    </div>
+  </main>
+
+  <footer class="footer">
+    <div class="container" style="text-align:center;">
+      <p style="color:#FFFFFF !important; opacity:1 !important; margin:0; font-weight:600;">© 2026–2027 JM Vertex Technologies · Pollachi, Tamil Nadu</p>
+    </div>
+  </footer>
 </body>
 </html>

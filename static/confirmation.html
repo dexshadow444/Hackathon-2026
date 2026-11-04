@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Registration Confirmed · JM Vertex Hackathon 2027</title>
-  <meta name="description" content="Official Team Pass and Payment Receipt for JM Vertex Hackathon 2027.">
+  <meta name="description" content="Official Team Pass and Payment Receipt for JM Vertex Hackathon 2027 in Pollachi, Tamil Nadu.">
 
   <!-- Favicon -->
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23147A47'/%3E%3Cpath d='M8 8 L24 24 M24 8 L8 24' stroke='%235BB8E8' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">
@@ -56,7 +56,7 @@
           <div style="display:flex; align-items:center; gap:0.6rem; font-family:var(--font-heading); font-size:1.3rem; font-weight:800; letter-spacing:-0.02em;">
             <span>⚡ JM Vertex Technologies</span>
           </div>
-          <p style="margin:0.2rem 0 0; opacity:0.85; font-size:0.92rem;">Hackathon 2027 · Official Team Access Pass</p>
+          <p style="margin:0.2rem 0 0; opacity:0.85; font-size:0.92rem;">Hackathon 2027 · Pollachi, Tamil Nadu · Official Team Access Pass</p>
         </div>
         <div style="text-align:right;">
           <small style="text-transform:uppercase; font-size:0.75rem; letter-spacing:0.08em; opacity:0.85; display:block;">Team Code</small>
@@ -66,9 +66,9 @@
 
       <!-- Ticket Body Details -->
       <div class="boarding-body">
-        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1.8rem; border-bottom:1px solid var(--border-light); padding-bottom:1.5rem;">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1.8rem; border-bottom:1px solid var(--border-light); padding-bottom:1.5rem; flex-wrap:wrap; gap:1rem;">
           <div>
-            <span class="section-tag">CONFIRMED TEAM</span>
+            <span class="section-tag">CONFIRMED TEAM ENTRY</span>
             <h2 id="tTeamName" style="color:var(--green-dark); margin:0.2rem 0 0.4rem;">Team Name</h2>
             <p id="tCollege" class="muted" style="margin:0; font-weight:500;">Institution Name</p>
           </div>
@@ -110,19 +110,23 @@
           </div>
         </div>
 
-        <!-- Idea Summary -->
+        <!-- Idea Summary & Presentation Deck Link -->
         <div class="review-section" style="margin-bottom:1.8rem;">
           <small style="font-weight:700; color:var(--green-dark); text-transform:uppercase;">Submitted Idea Title</small>
           <div id="tIdeaTitle" style="font-size:1.05rem; font-weight:700; margin:0.3rem 0; color:var(--text);">–</div>
-          <div style="display:flex; align-items:center; gap:0.5rem; font-size:0.88rem; color:var(--text-muted); margin-top:0.4rem;">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-            <span>Deck: <strong id="tFileName">–</strong></span>
+          <div style="margin-top:0.75rem;">
+            <!-- Requirement 15: Clickable PPT link in confirmation ticket -->
+            <a id="tFileLink" href="#" target="_blank" class="preview-ppt-link" title="Click to view or download uploaded presentation">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
+              <span>Deck: <strong id="tFileName">presentation.pptx</strong></span>
+              <span class="preview-eye-icon">👁️ View / Download PPT</span>
+            </a>
           </div>
         </div>
 
         <!-- Payment & Audit Receipt -->
         <div class="review-grid-2" style="background:#F9FBFB; border:1px solid var(--border); border-radius:var(--radius-md); padding:1.2rem; font-size:0.88rem;">
-          <div><small>Amount Paid:</small> <strong style="color:var(--green-dark);">₹<span id="tAmountPaid">500</span>.00 INR</strong></div>
+          <div><small>Amount Paid:</small> <strong style="color:var(--green-dark);">₹<span id="tAmountPaid">198</span>.00 INR</strong></div>
           <div><small>Transaction ID:</small> <span id="tPaymentId" class="mono">–</span></div>
           <div><small>Payment Timestamp:</small> <span id="tPaymentTime">–</span></div>
           <div><small>Terms Accepted:</small> <span id="tTermsAccepted">–</span> (Version: <span id="tTermsVersion">v1</span>)</div>
@@ -133,7 +137,7 @@
       <div class="ticket-barcode-strip">
         <div>
           <div class="barcode-lines" aria-hidden="true"></div>
-          <small class="mono" style="font-size:0.75rem; letter-spacing:0.1em; color:var(--text-muted); margin-top:0.3rem; display:block;">AUTH VALIDATED · 2027 SPRINT</small>
+          <small class="mono" style="font-size:0.75rem; letter-spacing:0.1em; color:var(--text-muted); margin-top:0.3rem; display:block;">AUTH VALIDATED · POLLACHI 2027 SPRINT</small>
         </div>
         <div style="text-align:right;">
           <div style="display:inline-block; padding:0.5rem; background:#fff; border:1px solid var(--border); border-radius:8px;">
@@ -190,7 +194,14 @@
 
         $("#tIdeaTitle").textContent = reg.idea_title;
         $("#tFileName").textContent = reg.idea_ppt_filename || "presentation.pptx";
-        $("#tAmountPaid").textContent = reg.amount_paid || "500";
+
+        // Requirement 15: Clickable PPT link
+        const tFileLink = $("#tFileLink");
+        if (tFileLink) {
+          tFileLink.href = `/api/file/view/${encodeURIComponent(reg.team_code)}`;
+        }
+
+        $("#tAmountPaid").textContent = reg.amount_paid || "0";
         $("#tPaymentId").textContent = reg.payment_id || "OFFLINE_TEST";
         $("#tPaymentTime").textContent = fmt(reg.payment_timestamp, DATETIME);
         $("#tTermsAccepted").textContent = fmt(reg.terms_accepted_at, DATETIME);

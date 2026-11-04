@@ -68,8 +68,10 @@ async def db_missing_handler(request: Request, exc: DatabaseNotConfigured):
 
 @app.exception_handler(StarletteHTTPException)
 async def http_handler(request: Request, exc: StarletteHTTPException):
-    if exc.status_code == 404 and not request.url.path.startswith("/api/"):
+    if exc.status_code == 404 and ("text/html" in request.headers.get("accept", "") or not request.url.path.startswith("/api/")):
         return FileResponse(STATIC / "404.html", status_code=404)
+    if exc.status_code == 500 and ("text/html" in request.headers.get("accept", "") or not request.url.path.startswith("/api/")):
+        return FileResponse(STATIC / "500.html", status_code=500)
     # If detail is dict, return dict as errors or message
     if isinstance(exc.detail, dict):
         return JSONResponse(status_code=exc.status_code, content={"errors": exc.detail})
@@ -79,6 +81,8 @@ async def http_handler(request: Request, exc: StarletteHTTPException):
 @app.exception_handler(Exception)
 async def unhandled_handler(request: Request, exc: Exception):
     log.exception("Unhandled error on %s", request.url.path)
+    if "text/html" in request.headers.get("accept", "") and not request.url.path.startswith("/api/"):
+        return FileResponse(STATIC / "500.html", status_code=500)
     return JSONResponse(
         status_code=500,
         content={"message": "Something went wrong on our side. Please try again."}

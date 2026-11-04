@@ -23,11 +23,14 @@
 
     if ($("#brandName")) $("#brandName").textContent = ev.name;
     if ($("#heroTitle")) {
-      $("#heroTitle").innerHTML = `${ev.name.split(" ")[0]} <span class="hero-title-accent">${ev.name.split(" ").slice(1).join(" ")}</span>`;
+      const parts = ev.name.split(" ");
+      const first = parts.slice(0, 2).join(" ");
+      const rest = parts.slice(2).join(" ");
+      $("#heroTitle").innerHTML = `${first} <span class="hero-title-accent">${rest}</span>`;
     }
     if ($("#tagline")) $("#tagline").textContent = ev.tagline;
     if ($("#heroDates")) $("#heroDates").textContent = `${fmt(ev.start, DATE)} – ${fmt(ev.end, DATE)}`;
-    if ($("#heroVenue")) $("#heroVenue").textContent = ev.venue;
+    if ($("#heroVenue")) $("#heroVenue").textContent = ev.venue || ev.location || "Pollachi, Tamil Nadu";
     if ($("#heroOrganiser")) $("#heroOrganiser").textContent = `Organised by ${ev.organiser}`;
     if ($("#footerOrg")) $("#footerOrg").textContent = `© ${ev.organiser}. All rights reserved.`;
 
@@ -35,15 +38,15 @@
       $("#aboutText").replaceChildren(...ev.about.map((t) => el("p", { text: t })));
     }
 
-    if ($("#tlOpen")) $("#tlOpen").textContent = fmt(cfg.timeline[0].at, DATETIME);
-    if ($("#tlClose")) $("#tlClose").textContent = fmt(cfg.timeline[1].at, DATETIME);
-    if ($("#tlStart")) $("#tlStart").textContent = fmt(cfg.timeline[2].at, DATETIME);
-    if ($("#tlEnd")) $("#tlEnd").textContent = fmt(cfg.timeline[3].at, DATETIME);
+    if ($("#tlOpen") && cfg.timeline && cfg.timeline[0]) $("#tlOpen").textContent = fmt(cfg.timeline[0].at, DATETIME);
+    if ($("#tlClose") && cfg.timeline && cfg.timeline[1]) $("#tlClose").textContent = fmt(cfg.timeline[1].at, DATETIME);
+    if ($("#tlStart") && cfg.timeline && cfg.timeline[2]) $("#tlStart").textContent = fmt(cfg.timeline[2].at, DATETIME);
+    if ($("#tlEnd") && cfg.timeline && cfg.timeline[3]) $("#tlEnd").textContent = fmt(cfg.timeline[3].at, DATETIME);
 
-    const fee = `₹${cfg.fee_inr.toLocaleString("en-IN")}`;
-    if ($("#feeAmount")) $("#feeAmount").textContent = fee;
-    if ($("#factFee")) $("#factFee").textContent = `${fee} per team`;
-    if ($("#factTeam")) $("#factTeam").textContent = `${cfg.team_size.min}–${cfg.team_size.max} members`;
+    const feePerMember = cfg.fee_per_member_inr || cfg.fee_inr || 99;
+    if ($("#feeAmount")) $("#feeAmount").textContent = `₹${feePerMember}`;
+    if ($("#factFee")) $("#factFee").textContent = `₹${feePerMember} per participant`;
+    if ($("#factTeam")) $("#factTeam").textContent = `${cfg.team_size.min} to ${cfg.team_size.max} members`;
     if ($("#factDeadline")) $("#factDeadline").textContent = fmt(cfg.registration.deadline, DATE);
 
     if ($("#faqList") && cfg.faq) {
@@ -190,7 +193,6 @@
   }
 
   async function init() {
-    // Start preloader animation
     initPreloader();
 
     try {

@@ -51,6 +51,8 @@ def _init_sqlite():
         idea_description TEXT NOT NULL,
         idea_ppt_filename TEXT,
         idea_ppt_path TEXT,
+        google_drive_file_id TEXT,
+        google_drive_web_link TEXT,
         terms_accepted INTEGER NOT NULL DEFAULT 0,
         terms_version TEXT,
         terms_accepted_at TEXT,
@@ -67,6 +69,17 @@ def _init_sqlite():
         updated_at TEXT NOT NULL
     );
     """)
+
+    # Safe column additions if table already existed from previous run
+    for col_def in [
+        ("google_drive_file_id", "TEXT"),
+        ("google_drive_web_link", "TEXT"),
+    ]:
+        try:
+            cur.execute(f"ALTER TABLE registrations ADD COLUMN {col_def[0]} {col_def[1]};")
+        except sqlite3.OperationalError:
+            pass  # column already exists
+
     cur.execute("""
     CREATE TABLE IF NOT EXISTS preregistration_alerts (
         id TEXT PRIMARY KEY,
@@ -79,6 +92,19 @@ def _init_sqlite():
     );
     """)
     cur.execute("""
+    CREATE TABLE IF NOT EXISTS admin_audit_logs (
+        id TEXT PRIMARY KEY,
+        registration_id TEXT NOT NULL,
+        team_code TEXT,
+        team_name TEXT,
+        admin_user TEXT NOT NULL,
+        action_type TEXT NOT NULL,
+        changes_json TEXT NOT NULL DEFAULT '{}',
+        notes TEXT,
+        created_at TEXT NOT NULL
+    );
+    """)
+    cur.execute("""
     CREATE TABLE IF NOT EXISTS sequences (
         name TEXT PRIMARY KEY,
         val INTEGER NOT NULL
@@ -87,6 +113,7 @@ def _init_sqlite():
     cur.execute("INSERT OR IGNORE INTO sequences (name, val) VALUES ('team_code_seq', 100);")
     conn.commit()
     conn.close()
+
 
 _init_sqlite()
 
@@ -132,7 +159,7 @@ class Repository:
     Unified Data Access Layer:
     If Supabase credentials are configured, performs operations against Supabase.
     Otherwise, performs operations against local SQLite database so development, testing,
-    and UI previews run completely smoothly out of the box.
+    and previews run completely smoothly out of the box.
     """
 
     @staticmethod
@@ -157,24 +184,27 @@ class Repository:
         return count
 
     @staticmethod
-    def is_team_name_taken(name: str) -> bool:
+    def is_team_name_taken(name: str, exclude_id: str = "") -> bool:
         key = name.strip().lower()
         if not key:
             return False
 
         if settings.has_supabase:
             try:
-                res = (
-                    get_supabase_client().table("registrations")
-                    .select("id").eq("team_name_key", key).limit(1).execute()
-                )
+                q = get_supabase_client().table("registrations").select("id").eq("team_name_key", key)
+                if exclude_id:
+                    q = q.neq("id", exclude_id)
+                res = q.limit(1).execute()
                 return bool(res.data)
             except Exception as e:
                 log.warning("Supabase check team name error: %s", e)
 
         conn = get_sqlite_conn()
         cur = conn.cursor()
-        cur.execute("SELECT id FROM registrations WHERE team_name_key = ? LIMIT 1", (key,))
+        if exclude_id:
+            cur.execute("SELECT id FROM registrations WHERE team_name_key = ? AND id != ? LIMIT 1", (key, exclude_id))
+        else:
+            cur.execute("SELECT id FROM registrations WHERE team_name_key = ? LIMIT 1", (key,))
         row = cur.fetchone()
         conn.close()
         return bool(row)
@@ -195,7 +225,6 @@ class Repository:
                 return True
             except Exception as e:
                 log.warning("Supabase add lead failed: %s", e)
-                # If error is duplicate key, ignore
 
         conn = get_sqlite_conn()
         cur = conn.cursor()
@@ -223,7 +252,6 @@ class Repository:
 
         if settings.has_supabase:
             try:
-                # Prepare members_data for JSON column
                 db_data = dict(data)
                 if isinstance(db_data.get("members_data"), str):
                     db_data["members_data"] = json.loads(db_data["members_data"])
@@ -247,14 +275,16 @@ class Repository:
             id, team_code, team_name, team_name_key, college_name, track,
             leader_name, leader_email, leader_phone, leader_department, leader_year, leader_gender, leader_id_number,
             member_count, members_data, idea_title, idea_summary, idea_description,
-            idea_ppt_filename, idea_ppt_path, terms_accepted, terms_version, terms_accepted_at,
+            idea_ppt_filename, idea_ppt_path, google_drive_file_id, google_drive_web_link,
+            terms_accepted, terms_version, terms_accepted_at,
             amount_paid, payment_status, payment_mode, razorpay_order_id, razorpay_payment_id,
             razorpay_signature, payment_timestamp, review_status, admin_notes, created_at, updated_at
         ) VALUES (
             ?, ?, ?, ?, ?, ?,
             ?, ?, ?, ?, ?, ?, ?,
             ?, ?, ?, ?, ?,
-            ?, ?, ?, ?, ?,
+            ?, ?, ?, ?,
+            ?, ?, ?,
             ?, ?, ?, ?, ?,
             ?, ?, ?, ?, ?, ?
         )
@@ -264,6 +294,7 @@ class Repository:
             data["leader_year"], data.get("leader_gender"), data.get("leader_id_number"),
             data["member_count"], members_json, data["idea_title"], data["idea_summary"], data["idea_description"],
             data.get("idea_ppt_filename"), data.get("idea_ppt_path"),
+            data.get("google_drive_file_id"), data.get("google_drive_web_link"),
             1 if data.get("terms_accepted") else 0, data.get("terms_version"), data.get("terms_accepted_at"),
             data.get("amount_paid", 0), data.get("payment_status", "pending"), data.get("payment_mode", "razorpay"),
             data.get("razorpay_order_id"), data.get("razorpay_payment_id"),
@@ -297,7 +328,10 @@ class Repository:
             return None
         d = dict(row)
         if isinstance(d.get("members_data"), str):
-            d["members_data"] = json.loads(d["members_data"])
+            try:
+                d["members_data"] = json.loads(d["members_data"])
+            except Exception:
+                d["members_data"] = []
         d["terms_accepted"] = bool(d.get("terms_accepted"))
         return d
 
@@ -324,7 +358,10 @@ class Repository:
             return None
         d = dict(row)
         if isinstance(d.get("members_data"), str):
-            d["members_data"] = json.loads(d["members_data"])
+            try:
+                d["members_data"] = json.loads(d["members_data"])
+            except Exception:
+                d["members_data"] = []
         d["terms_accepted"] = bool(d.get("terms_accepted"))
         return d
 
@@ -350,7 +387,10 @@ class Repository:
             return None
         d = dict(row)
         if isinstance(d.get("members_data"), str):
-            d["members_data"] = json.loads(d["members_data"])
+            try:
+                d["members_data"] = json.loads(d["members_data"])
+            except Exception:
+                d["members_data"] = []
         d["terms_accepted"] = bool(d.get("terms_accepted"))
         return d
 
@@ -445,8 +485,15 @@ class Repository:
         return results
 
     @staticmethod
-    def update_review_status(reg_id: str, status: str, admin_notes: str) -> bool:
+    def update_review_status(reg_id: str, status: str, admin_notes: str, admin_user: str = "admin") -> bool:
         now = datetime.now(timezone.utc).isoformat()
+        reg = Repository.get_registration_by_id(reg_id)
+        if not reg:
+            return False
+
+        old_status = reg.get("review_status", "")
+        old_notes = reg.get("admin_notes", "")
+
         if settings.has_supabase:
             try:
                 get_supabase_client().table("registrations").update({
@@ -454,7 +501,6 @@ class Repository:
                     "admin_notes": admin_notes,
                     "updated_at": now,
                 }).eq("id", reg_id).execute()
-                return True
             except Exception as e:
                 log.warning("Supabase update status failed: %s", e)
 
@@ -469,15 +515,208 @@ class Repository:
         """, (status, admin_notes, now, reg_id))
         conn.commit()
         conn.close()
+
+        # Record audit log if status or notes changed
+        if old_status != status or old_notes != admin_notes:
+            changes = {}
+            if old_status != status:
+                changes["review_status"] = {"from": old_status, "to": status}
+            if old_notes != admin_notes:
+                changes["admin_notes"] = {"from": old_notes, "to": admin_notes}
+
+            Repository.record_admin_audit(
+                registration_id=reg_id,
+                team_code=reg.get("team_code", ""),
+                team_name=reg.get("team_name", ""),
+                admin_user=admin_user,
+                action_type="UPDATE_STATUS",
+                changes=changes,
+                notes=f"Review status set to {status}",
+            )
         return True
 
     @staticmethod
-    def delete_registration(reg_id: str) -> Optional[str]:
+    def update_registration_details(
+        reg_id: str,
+        updated_fields: Dict[str, Any],
+        admin_user: str,
+        notes: str = "",
+    ) -> Optional[Dict[str, Any]]:
+        """Updates participant and team details by admin, and creates an audit record."""
+        current = Repository.get_registration_by_id(reg_id)
+        if not current:
+            return None
+
+        now = datetime.now(timezone.utc).isoformat()
+        changes: Dict[str, Any] = {}
+
+        # Allowed editable fields
+        editable_fields = [
+            "team_name", "college_name", "track",
+            "leader_name", "leader_email", "leader_phone",
+            "leader_department", "leader_year", "leader_gender", "leader_id_number",
+            "members_data", "member_count",
+            "idea_title", "idea_summary", "idea_description",
+            "admin_notes", "payment_status"
+        ]
+
+        updates: Dict[str, Any] = {"updated_at": now}
+
+        for f in editable_fields:
+            if f in updated_fields:
+                new_val = updated_fields[f]
+                old_val = current.get(f)
+
+                if f == "members_data":
+                    if isinstance(new_val, str):
+                        try:
+                            new_val = json.loads(new_val)
+                        except Exception:
+                            new_val = []
+                    if old_val != new_val:
+                        changes[f] = {"from": len(old_val) if isinstance(old_val, list) else 0, "to": len(new_val)}
+                        updates[f] = json.dumps(new_val)
+                        # Also update member count if not explicitly set
+                        updates["member_count"] = len(new_val) + 1
+                elif f == "team_name":
+                    new_clean = str(new_val).strip()
+                    if new_clean != old_val:
+                        changes[f] = {"from": old_val, "to": new_clean}
+                        updates["team_name"] = new_clean
+                        updates["team_name_key"] = new_clean.lower()
+                else:
+                    if old_val != new_val:
+                        changes[f] = {"from": old_val, "to": new_val}
+                        updates[f] = new_val
+
+        if not changes:
+            return current  # Nothing changed
+
+        # Apply to Supabase if configured
+        if settings.has_supabase:
+            try:
+                sb_data = dict(updates)
+                if "members_data" in sb_data and isinstance(sb_data["members_data"], str):
+                    sb_data["members_data"] = json.loads(sb_data["members_data"])
+                get_supabase_client().table("registrations").update(sb_data).eq("id", reg_id).execute()
+            except Exception as e:
+                log.warning("Supabase update registration failed: %s", e)
+
+        # Apply to SQLite
+        conn = get_sqlite_conn()
+        cur = conn.cursor()
+        set_clause = ", ".join(f"{k} = ?" for k in updates.keys())
+        values = list(updates.values()) + [reg_id]
+        cur.execute(f"UPDATE registrations SET {set_clause} WHERE id = ?", values)
+        conn.commit()
+        conn.close()
+
+        # Record audit log
+        Repository.record_admin_audit(
+            registration_id=reg_id,
+            team_code=current.get("team_code", ""),
+            team_name=current.get("team_name", ""),
+            admin_user=admin_user,
+            action_type="EDIT_PARTICIPANT_DETAILS",
+            changes=changes,
+            notes=notes or f"Updated {len(changes)} fields by admin {admin_user}",
+        )
+
+        return Repository.get_registration_by_id(reg_id)
+
+    @staticmethod
+    def record_admin_audit(
+        registration_id: str,
+        team_code: str,
+        team_name: str,
+        admin_user: str,
+        action_type: str,
+        changes: Dict[str, Any],
+        notes: str = "",
+    ) -> bool:
+        """Records an admin action into the audit table."""
+        audit_id = str(uuid.uuid4())
+        now = datetime.now(timezone.utc).isoformat()
+        changes_json = json.dumps(changes)
+
+        if settings.has_supabase:
+            try:
+                get_supabase_client().table("admin_audit_logs").insert({
+                    "id": audit_id,
+                    "registration_id": registration_id,
+                    "team_code": team_code,
+                    "team_name": team_name,
+                    "admin_user": admin_user,
+                    "action_type": action_type,
+                    "changes_json": changes_json,
+                    "notes": notes,
+                    "created_at": now,
+                }).execute()
+                return True
+            except Exception as e:
+                log.warning("Supabase record audit log failed: %s", e)
+
+        conn = get_sqlite_conn()
+        cur = conn.cursor()
+        cur.execute("""
+        INSERT INTO admin_audit_logs (
+            id, registration_id, team_code, team_name, admin_user, action_type, changes_json, notes, created_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (audit_id, registration_id, team_code, team_name, admin_user, action_type, changes_json, notes, now))
+        conn.commit()
+        conn.close()
+        return True
+
+    @staticmethod
+    def get_audit_logs(limit: int = 100, registration_id: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Returns action audit trail sorted by latest first."""
+        conn = get_sqlite_conn()
+        cur = conn.cursor()
+        if registration_id:
+            cur.execute("""
+            SELECT * FROM admin_audit_logs
+            WHERE registration_id = ?
+            ORDER BY created_at DESC
+            LIMIT ?
+            """, (registration_id, limit))
+        else:
+            cur.execute("""
+            SELECT * FROM admin_audit_logs
+            ORDER BY created_at DESC
+            LIMIT ?
+            """, (limit,))
+        rows = cur.fetchall()
+        conn.close()
+
+        logs = []
+        for r in rows:
+            d = dict(r)
+            if isinstance(d.get("changes_json"), str):
+                try:
+                    d["changes"] = json.loads(d["changes_json"])
+                except Exception:
+                    d["changes"] = {}
+            else:
+                d["changes"] = d.get("changes_json") or {}
+            logs.append(d)
+        return logs
+
+    @staticmethod
+    def delete_registration(reg_id: str, admin_user: str = "admin") -> Optional[str]:
         """Deletes registration record and returns the file path to clean up."""
         file_path = None
         reg = Repository.get_registration_by_id(reg_id)
         if reg:
             file_path = reg.get("idea_ppt_path")
+            Repository.record_admin_audit(
+                registration_id=reg_id,
+                team_code=reg.get("team_code", ""),
+                team_name=reg.get("team_name", ""),
+                admin_user=admin_user,
+                action_type="DELETE_REGISTRATION",
+                changes={"deleted_team": reg.get("team_name", "")},
+                notes="Registration permanently deleted by admin",
+            )
 
         if settings.has_supabase:
             try:
@@ -530,10 +769,7 @@ class Repository:
         track_rows = cur.fetchall()
         teams_per_track = {t: 0 for t in content.TRACKS}
         for row in track_rows:
-            if row[0] in teams_per_track:
-                teams_per_track[row[0]] = row[1]
-            else:
-                teams_per_track[row[0]] = row[1]
+            teams_per_track[row[0]] = row[1]
 
         conn.close()
 
