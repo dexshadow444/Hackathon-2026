@@ -56,21 +56,30 @@ def verify_admin_session(token: str) -> Optional[str]:
 
 
 def get_authenticated_admin(request: Request) -> str:
-    token = request.cookies.get(ADMIN_COOKIE_NAME)
-    if not token:
-        auth_header = request.headers.get("Authorization", "")
-        if auth_header.startswith("Bearer "):
-            token = auth_header.split(" ", 1)[1]
-    if not token:
-        token = request.query_params.get("token")
+    # 1. Try cookie
+    cookie_token = request.cookies.get(ADMIN_COOKIE_NAME)
+    if cookie_token:
+        user = verify_admin_session(cookie_token)
+        if user:
+            return user
 
-    if not token:
-        raise HTTPException(status_code=401, detail="Admin authentication required.")
+    # 2. Try Bearer header
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header.startswith("Bearer "):
+        bearer_token = auth_header.split(" ", 1)[1].strip()
+        if bearer_token:
+            user = verify_admin_session(bearer_token)
+            if user:
+                return user
 
-    username = verify_admin_session(token)
-    if not username:
-        raise HTTPException(status_code=401, detail="Session expired or invalid. Please log in again.")
-    return username
+    # 3. Try query param
+    query_token = request.query_params.get("token")
+    if query_token:
+        user = verify_admin_session(query_token.strip())
+        if user:
+            return user
+
+    raise HTTPException(status_code=401, detail="Admin authentication required.")
 
 
 def registration_state(now: datetime | None = None) -> str:

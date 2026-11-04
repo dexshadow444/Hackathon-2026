@@ -43,7 +43,7 @@ window.HK = (() => {
       const token = localStorage.getItem("hackathon_admin_token");
       if (token) headers["Authorization"] = `Bearer ${token}`;
     } catch {}
-    const res = await fetch(url, { headers });
+    const res = await fetch(url, { headers, credentials: "include" });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
       throw err;
@@ -60,6 +60,7 @@ window.HK = (() => {
     const res = await fetch(url, {
       method: "POST",
       headers,
+      credentials: "include",
       body: JSON.stringify(data),
     });
     const json = await res.json().catch(() => ({}));

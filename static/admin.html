@@ -427,12 +427,33 @@
       let currentActiveRegId = null;
       let isEditMode = false;
 
+      // Extract token from query params if passed during login redirect
+      const urlParams = new URLSearchParams(window.location.search);
+      const urlToken = urlParams.get("token");
+      if (urlToken) {
+        try {
+          localStorage.setItem("hackathon_admin_token", urlToken);
+        } catch {}
+        document.cookie = `hackathon_admin_session=${urlToken}; path=/; max-age=43200; SameSite=Lax`;
+        window.history.replaceState({}, document.title, window.location.pathname);
+      }
+
       async function checkAuth() {
         try {
           const me = await getJSON("/api/admin/me");
-          $("#adminUsername").textContent = me.user;
-        } catch {
-          window.location.href = "/admin";
+          if (me && me.user) {
+            $("#adminUsername").textContent = me.user;
+            return true;
+          }
+          throw new Error("Invalid admin response");
+        } catch (err) {
+          console.warn("Session check failed:", err);
+          try {
+            localStorage.removeItem("hackathon_admin_token");
+          } catch {}
+          document.cookie = "hackathon_admin_session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+          window.location.replace("/admin/login");
+          return false;
         }
       }
 
@@ -471,9 +492,10 @@
 
         try {
           const res = await getJSON(`/api/admin/registrations?${params.toString()}`);
-          allRegistrations = res.registrations;
+          allRegistrations = (res && res.registrations) || [];
           renderTable(allRegistrations);
         } catch (e) {
+          console.error("Failed to load registrations:", e);
           $("#teamsTableBody").innerHTML = '<tr><td colspan="10" style="text-align:center; color:var(--error); padding:2rem;">Failed to fetch teams.</td></tr>';
         }
       }
@@ -930,10 +952,16 @@
       }
 
       async function init() {
-        await checkAuth();
-        await loadMetrics();
-        await loadRegistrations();
-        await loadAuditLogs();
+        const authed = await checkAuth();
+        if (!authed) return;
+
+        // Fetch data concurrently so dashboard renders immediately
+        await Promise.allSettled([
+          loadMetrics(),
+          loadRegistrations(),
+          loadAuditLogs(),
+        ]);
+
         setupSearchAndFilters();
         setupAutoSave();
         setupEditMode();

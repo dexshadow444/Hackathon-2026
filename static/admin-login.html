@@ -91,20 +91,11 @@
 
   <script src="/static/js/common.js"></script>
   <script>
-    (async () => {
-      const { $, postJSON, getJSON, setLoading } = HK;
+    (() => {
+      const { $, postJSON, setLoading } = HK;
       const form = $("#adminLoginForm");
       const errBox = $("#loginError");
       const submitBtn = $("#btnLoginSubmit");
-
-      // Auto-check if already authenticated
-      try {
-        const me = await getJSON("/api/admin/me");
-        if (me && me.ok) {
-          window.location.replace("/admin");
-          return;
-        }
-      } catch {}
 
       form.addEventListener("submit", async (e) => {
         e.preventDefault();
@@ -128,8 +119,10 @@
               try {
                 localStorage.setItem("hackathon_admin_token", res.token);
               } catch {}
+              document.cookie = `hackathon_admin_session=${res.token}; path=/; max-age=43200; SameSite=Lax`;
             }
-            window.location.href = "/admin";
+            // Navigate directly to /admin with query token fallback to guarantee session entry
+            window.location.href = "/admin?token=" + encodeURIComponent(res.token || "");
           } else {
             errBox.hidden = false;
             errBox.textContent = "Authentication failed. Please verify your credentials.";

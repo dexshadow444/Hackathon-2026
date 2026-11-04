@@ -128,32 +128,45 @@ def confirmation_page(team_code: str):
     return FileResponse(STATIC / "confirmation.html")
 
 
+def _extract_admin_user(request: Request):
+    # 1. Try cookie
+    cookie_token = request.cookies.get(ADMIN_COOKIE_NAME)
+    if cookie_token:
+        user = verify_admin_session(cookie_token)
+        if user:
+            return user
+
+    # 2. Try Bearer header
+    auth_header = request.headers.get("Authorization", "")
+    if auth_header.startswith("Bearer "):
+        bearer_token = auth_header.split(" ", 1)[1].strip()
+        if bearer_token:
+            user = verify_admin_session(bearer_token)
+            if user:
+                return user
+
+    # 3. Try query param
+    query_token = request.query_params.get("token")
+    if query_token:
+        user = verify_admin_session(query_token.strip())
+        if user:
+            return user
+
+    return None
+
+
 @app.get("/admin/login", include_in_schema=False)
 def admin_login_page(request: Request):
-    token = request.cookies.get(ADMIN_COOKIE_NAME)
-    if not token:
-        auth_header = request.headers.get("Authorization", "")
-        if auth_header.startswith("Bearer "):
-            token = auth_header.split(" ", 1)[1]
-    if not token:
-        token = request.query_params.get("token")
-
-    if token and verify_admin_session(token):
+    user = _extract_admin_user(request)
+    if user:
         return RedirectResponse(url="/admin", status_code=303)
     return FileResponse(STATIC / "admin-login.html")
 
 
 @app.get("/admin", include_in_schema=False)
 def admin_dashboard_page(request: Request):
-    token = request.cookies.get(ADMIN_COOKIE_NAME)
-    if not token:
-        auth_header = request.headers.get("Authorization", "")
-        if auth_header.startswith("Bearer "):
-            token = auth_header.split(" ", 1)[1]
-    if not token:
-        token = request.query_params.get("token")
-
-    if not token or not verify_admin_session(token):
+    user = _extract_admin_user(request)
+    if not user:
         return FileResponse(STATIC / "admin-login.html")
     return FileResponse(STATIC / "admin.html")
 
