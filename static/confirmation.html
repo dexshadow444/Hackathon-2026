@@ -116,10 +116,10 @@
           <div id="tIdeaTitle" style="font-size:1.05rem; font-weight:700; margin:0.3rem 0; color:var(--text);">–</div>
           <div style="margin-top:0.75rem;">
             <!-- Requirement 15: Clickable PPT link in confirmation ticket -->
-            <a id="tFileLink" href="#" target="_blank" class="preview-ppt-link" title="Click to view or download uploaded presentation">
+            <a id="tFileLink" href="#" class="preview-ppt-link" title="Preview the uploaded presentation">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
               <span>Deck: <strong id="tFileName">presentation.pptx</strong></span>
-              <span class="preview-eye-icon">👁️ View / Download PPT</span>
+              <span class="preview-eye-icon">👁️ View PPT</span>
             </a>
           </div>
         </div>
@@ -139,14 +139,26 @@
           <div class="barcode-lines" aria-hidden="true"></div>
           <small class="mono" style="font-size:0.75rem; letter-spacing:0.1em; color:var(--text-muted); margin-top:0.3rem; display:block;">AUTH VALIDATED · POLLACHI 2027 SPRINT</small>
         </div>
-        <div style="text-align:right;">
-          <div style="display:inline-block; padding:0.5rem; background:#fff; border:1px solid var(--border); border-radius:8px;">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color:var(--green-dark);"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
-          </div>
-        </div>
       </div>
     </div>
   </main>
+
+  <div class="modal-overlay" id="pptPreviewModal" aria-hidden="true">
+    <section class="modal-content ppt-preview-modal" role="dialog" aria-modal="true" aria-labelledby="pptPreviewTitle">
+      <div class="modal-head">
+        <div>
+          <h3 id="pptPreviewTitle">Presentation Preview</h3>
+        </div>
+        <button type="button" class="modal-close-btn" id="closePptPreview" aria-label="Close presentation preview">&times;</button>
+      </div>
+      <div class="ppt-preview-toolbar">
+        <button type="button" class="btn btn-outline btn-sm" id="pptPrevSlide" disabled>← Previous</button>
+        <span id="pptSlideCount" aria-live="polite">Slide 0 of 0</span>
+        <button type="button" class="btn btn-outline btn-sm" id="pptNextSlide" disabled>Next →</button>
+      </div>
+      <div id="pptPreviewStage" class="ppt-preview-stage" aria-live="polite">Loading presentation preview…</div>
+    </section>
+  </div>
 
   <script src="/static/js/common.js"></script>
   <script>
@@ -199,6 +211,57 @@
         const tFileLink = $("#tFileLink");
         if (tFileLink) {
           tFileLink.href = `/api/file/view/${encodeURIComponent(reg.team_code)}`;
+          const previewModal = $("#pptPreviewModal");
+          const previewStage = $("#pptPreviewStage");
+          const slideCount = $("#pptSlideCount");
+          const previousSlide = $("#pptPrevSlide");
+          const nextSlide = $("#pptNextSlide");
+          let presentation = null;
+          let currentSlide = 0;
+          let renderSlideToSvg = null;
+          const showSlide = () => {
+            previewStage.innerHTML = renderSlideToSvg(presentation, presentation.slides[currentSlide]);
+            slideCount.textContent = `Slide ${currentSlide + 1} of ${presentation.slides.length}`;
+            previousSlide.disabled = currentSlide === 0;
+            nextSlide.disabled = currentSlide === presentation.slides.length - 1;
+          };
+          const closePreview = () => {
+            previewModal.classList.remove("open");
+            previewModal.setAttribute("aria-hidden", "true");
+            previewStage.replaceChildren();
+            presentation = null;
+          };
+          tFileLink.addEventListener("click", (event) => {
+            event.preventDefault();
+            previewModal.classList.add("open");
+            previewModal.setAttribute("aria-hidden", "false");
+            previewStage.textContent = "Loading presentation preview…";
+            import("https://esm.sh/@web-ppt/core@0.6.0")
+              .then(async (ppt) => {
+                renderSlideToSvg = ppt.renderSlideToSvg;
+                const response = await fetch(tFileLink.href);
+                if (!response.ok) throw new Error("Unable to load presentation");
+                presentation = await ppt.parse(await response.blob());
+                currentSlide = 0;
+                showSlide();
+              })
+              .catch(() => {
+                previewStage.textContent = "This presentation could not be previewed. Please try again or contact the event team.";
+              });
+          });
+          previousSlide.addEventListener("click", () => {
+            if (presentation && currentSlide > 0) { currentSlide -= 1; showSlide(); }
+          });
+          nextSlide.addEventListener("click", () => {
+            if (presentation && currentSlide < presentation.slides.length - 1) { currentSlide += 1; showSlide(); }
+          });
+          $("#closePptPreview").addEventListener("click", closePreview);
+          previewModal.addEventListener("click", (event) => {
+            if (event.target === previewModal) closePreview();
+          });
+          document.addEventListener("keydown", (event) => {
+            if (event.key === "Escape" && previewModal.classList.contains("open")) closePreview();
+          });
         }
 
         $("#tAmountPaid").textContent = reg.amount_paid || "0";
