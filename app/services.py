@@ -248,44 +248,32 @@ def get_presentation_file_path(filename_or_key: str) -> Optional[Path]:
     return None
 
 
-# ---------------- Payment (Razorpay & Sandbox) ----------------
+# ---------------- Payment (Razorpay) ----------------
 def create_payment_order(team_code: str, amount_inr: int = 99) -> Dict[str, Any]:
     amount_paise = amount_inr * 100
 
-    if settings.has_razorpay:
-        try:
-            import razorpay
-            client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
-            order_data = {
-                "amount": amount_paise,
-                "currency": "INR",
-                "receipt": team_code,
-                "notes": {"team_code": team_code, "amount_inr": amount_inr},
-            }
-            order = client.order.create(data=order_data)
-            return {
-                "order_id": order["id"],
-                "amount": order["amount"],
-                "currency": order["currency"],
-                "key_id": settings.RAZORPAY_KEY_ID,
-                "is_sandbox": False,
-            }
-        except Exception as e:
-            if settings.is_production:
-                raise HTTPException(status_code=500, detail="Payment gateway initialization failed.")
+    if not settings.has_razorpay:
+        raise HTTPException(status_code=503, detail="Razorpay keys are not configured. Please contact the event organizers.")
 
-    # Sandbox mode (development only)
-    if settings.is_production:
-        raise HTTPException(status_code=500, detail="Razorpay keys not configured in production.")
-
-    sandbox_order_id = f"order_sbx_{uuid.uuid4().hex[:12]}"
-    return {
-        "order_id": sandbox_order_id,
-        "amount": amount_paise,
-        "currency": "INR",
-        "key_id": "rzp_test_sandbox_dummy",
-        "is_sandbox": True,
-    }
+    try:
+        import razorpay
+        client = razorpay.Client(auth=(settings.RAZORPAY_KEY_ID, settings.RAZORPAY_KEY_SECRET))
+        order_data = {
+            "amount": amount_paise,
+            "currency": "INR",
+            "receipt": team_code,
+            "notes": {"team_code": team_code, "amount_inr": amount_inr},
+        }
+        order = client.order.create(data=order_data)
+        return {
+            "order_id": order["id"],
+            "amount": order["amount"],
+            "currency": order["currency"],
+            "key_id": settings.RAZORPAY_KEY_ID,
+        }
+    except Exception as e:
+        log.exception("Razorpay order creation failed for team %s", team_code)
+        raise HTTPException(status_code=502, detail="Payment gateway initialization failed. Please try again.") from e
 
 
 def verify_payment(
@@ -306,10 +294,6 @@ def verify_payment(
             return True
         except Exception:
             return False
-
-    # Development Sandbox simulation
-    if not settings.is_production and order_id.startswith("order_sbx_"):
-        return True
 
     return False
 

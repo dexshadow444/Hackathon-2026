@@ -2,6 +2,7 @@ import io
 import sys
 import uuid
 from pathlib import Path
+from unittest.mock import patch
 
 # Add project root to sys.path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
@@ -105,9 +106,17 @@ form_data_2 = {
 }
 files_2 = {'idea_presentation': ('smart_irrigation.pptx', test_ppt_2, 'application/vnd.openxmlformats-officedocument.presentationml.presentation')}
 
-res = client.post('/api/register', data=form_data_2, files=files_2)
+mock_order = {
+    "order_id": f"order_test_{rand_id}",
+    "amount": 19800,
+    "currency": "INR",
+    "key_id": "rzp_test_flow",
+}
+with patch("app.routes.public.create_payment_order", return_value=mock_order):
+    res = client.post('/api/register', data=form_data_2, files=files_2)
 assert res.status_code == 200, f"Register failed: {res.text}"
 reg_data = res.json()
+assert "is_sandbox" not in reg_data["order"]
 assert reg_data["amount_inr"] == 198, f"Expected fee 198 for 2 members, got {reg_data['amount_inr']}"
 assert reg_data["member_count"] == 2
 team_code = reg_data["team_code"]
@@ -117,6 +126,8 @@ print(f"[PASS] 2-Member Team registered: Code {team_code}, Fee INR {reg_data['am
 # 7. Test Student Presentation Preview Link
 res = client.get(f"/api/file/view/{team_code}")
 assert res.status_code in (200, 307), f"Preview file failed with {res.status_code}"
+if res.status_code == 200:
+    assert res.headers.get("content-disposition", "").startswith("inline;")
 print(f"[PASS] Student PPT Clickable Preview /api/file/view/{team_code} -> {res.status_code} OK")
 
 # 8. Test Payment Verification
@@ -125,7 +136,8 @@ verify_payload = {
     'razorpay_payment_id': f'pay_test_{uuid.uuid4().hex[:8]}',
     'razorpay_signature': 'test_signature_valid'
 }
-res = client.post('/api/payment/verify', json=verify_payload)
+with patch("app.routes.public.verify_payment", return_value=True):
+    res = client.post('/api/payment/verify', json=verify_payload)
 assert res.status_code == 200, f"Payment verify failed: {res.text}"
 assert res.json()['redirect_url'] == f"/confirmation/{team_code}"
 print(f"[PASS] Payment verified -> Redirect to /confirmation/{team_code}")

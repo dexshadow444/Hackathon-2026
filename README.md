@@ -34,7 +34,7 @@ pip install -r requirements.txt
 ```bash
 cp .env.example .env
 ```
-*(The application features a built-in automated local fallback database (`data/hackathon.db`) and payment sandbox, so it runs completely out of the box before you even add Supabase or Razorpay keys!)*
+*(The application features a built-in automated local fallback database (`data/hackathon.db`). Razorpay API keys are required to accept registration payments.)*
 
 ### 3. Seed Sample Teams (Optional Demonstration)
 ```bash

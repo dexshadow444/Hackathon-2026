@@ -25,7 +25,7 @@ FAQ = [
     ("Who can form a team?",
      f"A team has {settings.MIN_TEAM_MEMBERS} to {settings.MAX_TEAM_MEMBERS} members including the Team Leader. All members should currently be college students (undergraduate or postgraduate)."),
     ("What does it cost?",
-     f"The registration fee is ₹{settings.REGISTRATION_FEE_PER_MEMBER_INR} per student / participant (e.g., ₹{settings.REGISTRATION_FEE_PER_MEMBER_INR * 2} for 2 members, ₹{settings.REGISTRATION_FEE_PER_MEMBER_INR * 3} for 3 members, ₹{settings.REGISTRATION_FEE_PER_MEMBER_INR * 4} for 4 members, or ₹{settings.REGISTRATION_FEE_PER_MEMBER_INR * 5} for 5 members), paid securely online through Razorpay (or sandbox simulator during testing)."),
+     f"The registration fee is ₹{settings.REGISTRATION_FEE_PER_MEMBER_INR} per student / participant (e.g., ₹{settings.REGISTRATION_FEE_PER_MEMBER_INR * 2} for 2 members, ₹{settings.REGISTRATION_FEE_PER_MEMBER_INR * 3} for 3 members, ₹{settings.REGISTRATION_FEE_PER_MEMBER_INR * 4} for 4 members, or ₹{settings.REGISTRATION_FEE_PER_MEMBER_INR * 5} for 5 members), paid securely online through Razorpay."),
     ("What do we submit while registering?",
      "An idea title (max 100 chars), an abstract (max 10,000 chars), a detailed description (max 50,000 chars), and an idea presentation (.pptx or .ppt presentation deck, up to 10 MB). Download our standard presentation template right from this page."),
     ("Is there more than one round?",

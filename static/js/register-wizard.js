@@ -16,7 +16,6 @@
   let currentStep = 1;
   let selectedFile = null;
   let selectedFileUrl = null;
-  let pendingOrderData = null;
 
   // Defaults from .env / config
   let feePerMember = 99;
@@ -28,7 +27,6 @@
 
   // Modals
   const termsModal = setupModal("termsModal");
-  const sandboxModal = setupModal("sandboxModal");
 
   // DOM Elements
   const gateCard = $("#gateCard");
@@ -50,7 +48,6 @@
   const step1MemberSubtext = $("#step1MemberSubtext");
   const revTotalAmountDisplay = $("#revTotalAmountDisplay");
   const revFeeCalculationBreakdown = $("#revFeeCalculationBreakdown");
-  const sbxAmountPayable = $("#sbxAmountPayable");
 
   // Step sections
   const stepSection1 = $("#stepSection1");
@@ -109,6 +106,71 @@
     }
   }
 
+  function setupPptPreview() {
+    const previewModal = $("#pptPreviewModal");
+    const previewStage = $("#pptPreviewStage");
+    const slideCount = $("#pptSlideCount");
+    const previousSlide = $("#pptPrevSlide");
+    const nextSlide = $("#pptNextSlide");
+    const links = [$("#selectedFileLink"), $("#revFileLink")].filter(Boolean);
+    let presentation = null;
+    let currentSlide = 0;
+    let renderSlideToSvg = null;
+
+    const showSlide = () => {
+      previewStage.innerHTML = renderSlideToSvg(presentation, presentation.slides[currentSlide]);
+      slideCount.textContent = `Slide ${currentSlide + 1} of ${presentation.slides.length}`;
+      previousSlide.disabled = currentSlide === 0;
+      nextSlide.disabled = currentSlide === presentation.slides.length - 1;
+    };
+    const closePreview = () => {
+      previewModal.classList.remove("open");
+      previewModal.setAttribute("aria-hidden", "true");
+      previewStage.replaceChildren();
+      presentation = null;
+    };
+
+    links.forEach((link) => {
+      link.addEventListener("click", async (event) => {
+        event.preventDefault();
+        if (!selectedFile) return;
+
+        previewModal.classList.add("open");
+        previewModal.setAttribute("aria-hidden", "false");
+        previewStage.textContent = "Loading presentation preview…";
+        try {
+          const ppt = await import("https://esm.sh/@web-ppt/core@0.6.0");
+          renderSlideToSvg = ppt.renderSlideToSvg;
+          presentation = await ppt.parse(selectedFile);
+          currentSlide = 0;
+          showSlide();
+        } catch {
+          previewStage.textContent = "This presentation could not be previewed. Please try again or choose a .pptx file.";
+        }
+      });
+    });
+
+    previousSlide.addEventListener("click", () => {
+      if (presentation && currentSlide > 0) {
+        currentSlide -= 1;
+        showSlide();
+      }
+    });
+    nextSlide.addEventListener("click", () => {
+      if (presentation && currentSlide < presentation.slides.length - 1) {
+        currentSlide += 1;
+        showSlide();
+      }
+    });
+    $("#closePptPreview").addEventListener("click", closePreview);
+    previewModal.addEventListener("click", (event) => {
+      if (event.target === previewModal) closePreview();
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && previewModal.classList.contains("open")) closePreview();
+    });
+  }
+
   // ---------------- Real-time Pricing Calculations ----------------
   function updateRealtimePricing() {
     const totalMembers = crewList.length + 1; // 1 leader + crew count
@@ -125,7 +187,6 @@
     if (revFeeCalculationBreakdown) revFeeCalculationBreakdown.textContent = `(₹${feePerMember} × ${totalMembers} participants)`;
 
     if (payBtnText) payBtnText.textContent = `Pay ${formattedFee} & Complete Registration 💳`;
-    if (sbxAmountPayable) sbxAmountPayable.textContent = `${formattedFee}.00`;
   }
 
   // ---------------- Crew Members Setup (2 to 5 members total) ----------------
@@ -466,7 +527,6 @@
       revFileName.textContent = `${selectedFile.name} (${(selectedFile.size / (1024 * 1024)).toFixed(2)} MB)`;
       if (selectedFileUrl && revFileLink) {
         revFileLink.href = selectedFileUrl;
-        revFileLink.download = selectedFile.name;
       }
     } else {
       revFileName.textContent = "None";
@@ -531,6 +591,7 @@
 
     // File upload setup
     setupFileUpload();
+    setupPptPreview();
 
     // Step 2 -> Step 3
     $("#btnNextStep2").addEventListener("click", () => {
@@ -665,7 +726,6 @@
 
       if (fileLinkEl) {
         fileLinkEl.href = selectedFileUrl;
-        fileLinkEl.download = file.name;
       }
 
       dropzone.hidden = true;
@@ -737,7 +797,6 @@
       }
 
       // Registration pending saved, proceed to payment
-      pendingOrderData = data;
       triggerPaymentFlow(data);
     } catch (err) {
       alert("Network error occurred during registration. Please try again.");
@@ -748,30 +807,12 @@
   function triggerPaymentFlow(data) {
     const order = data.order;
 
-    // Check if Sandbox Simulator
-    if (order.is_sandbox) {
-      $("#sbxOrderId").textContent = order.order_id;
-      $("#sbxAmountPayable").textContent = `₹${(order.amount / 100).toFixed(2)}`;
-      sandboxModal.open();
-
-      $("#btnSimulateSuccess").onclick = async () => {
-        sandboxModal.close();
-        await completePaymentVerification({
-          razorpay_order_id: order.order_id,
-          razorpay_payment_id: `pay_sbx_${Date.now()}`,
-          razorpay_signature: `sig_sbx_mock_valid`,
-        });
-      };
-
-      $("#btnSimulateFail").onclick = () => {
-        sandboxModal.close();
-        setLoading(btnSubmitPayment, false);
-        alert("Payment was cancelled or failed. Your registration details remain saved. You can retry anytime.");
-      };
+    if (!window.Razorpay) {
+      setLoading(btnSubmitPayment, false);
+      alert("Razorpay Checkout could not be loaded. Please check your connection and try again.");
       return;
     }
 
-    // Live / Test Razorpay Modal
     const options = {
       key: order.key_id,
       amount: order.amount,

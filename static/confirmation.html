@@ -265,7 +265,7 @@
         }
 
         $("#tAmountPaid").textContent = reg.amount_paid || "0";
-        $("#tPaymentId").textContent = reg.payment_id || "OFFLINE_TEST";
+        $("#tPaymentId").textContent = reg.payment_id || "–";
         $("#tPaymentTime").textContent = fmt(reg.payment_timestamp, DATETIME);
         $("#tTermsAccepted").textContent = fmt(reg.terms_accepted_at, DATETIME);
         $("#tTermsVersion").textContent = reg.terms_version || "v1";

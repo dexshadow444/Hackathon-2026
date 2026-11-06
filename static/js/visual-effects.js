@@ -78,7 +78,7 @@
   // 3. Parallax Floating Elements in Hero
   if (finePointer && !reduceMotion) {
     const hero = document.querySelector(".hero");
-    const floatingChips = document.querySelectorAll(".hud-chip, .live-count-badge");
+    const floatingChips = document.querySelectorAll(".hud-chip");
 
     if (hero) {
       window.addEventListener("pointermove", (e) => {

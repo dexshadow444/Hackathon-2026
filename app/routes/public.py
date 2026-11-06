@@ -399,7 +399,7 @@ def get_public_registration(team_code: str):
         "google_drive_web_link": reg.get("google_drive_web_link") or settings.GOOGLE_DRIVE_FOLDER_URL,
         "amount_paid": reg.get("amount_paid", 0),
         "payment_status": reg.get("payment_status", "pending"),
-        "payment_id": reg.get("razorpay_payment_id", "SANDBOX_VERIFIED"),
+        "payment_id": reg.get("razorpay_payment_id", ""),
         "payment_timestamp": reg.get("payment_timestamp") or reg.get("created_at"),
         "terms_accepted_at": reg.get("terms_accepted_at"),
         "terms_version": reg.get("terms_version", TERMS_VERSION),

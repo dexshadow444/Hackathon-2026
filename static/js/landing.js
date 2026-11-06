@@ -140,18 +140,6 @@
     setInterval(tick, 1000);
   }
 
-  async function loadStats() {
-    try {
-      const s = await getJSON("/api/stats");
-      const teamCountEl = $("#teamCount");
-      if (teamCountEl) {
-        teamCountEl.textContent = s.paid_teams ?? 0;
-      }
-    } catch {
-      // Graceful fallback
-    }
-  }
-
   function setupNotifyForm() {
     const form = $("#notifyForm");
     if (!form) return;
@@ -203,7 +191,6 @@
       console.warn("Could not load initial config:", e);
     }
 
-    loadStats();
     setupNotifyForm();
   }
 

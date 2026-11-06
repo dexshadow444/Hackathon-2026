@@ -350,7 +350,7 @@
                 <div>
                   <div style="font-size:0.8rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Uploaded Presentation (Click to preview)</div>
                   <!-- Clickable file link -->
-                  <a id="selectedFileLink" href="#" target="_blank" class="preview-ppt-link" title="Click to view or download uploaded presentation">
+                  <a id="selectedFileLink" href="#" class="preview-ppt-link" title="Preview uploaded presentation">
                     <span id="selectedFileName">filename.pptx</span>
                     <span class="preview-eye-icon">👁️ View Deck</span>
                   </a>
@@ -427,9 +427,9 @@
               <div class="review-item"><small>Executive Abstract</small><p id="revIdeaSummary" class="muted" style="margin:0.2rem 0 0; font-size:0.92rem;"></p></div>
               <!-- Requirement 15: Clickable PPT link in review section -->
               <div class="review-item">
-                <small>Presentation File (Click to preview/download)</small>
+                <small>Presentation File (Click to preview)</small>
                 <div>
-                  <a id="revFileLink" href="#" target="_blank" class="preview-ppt-link">
+                  <a id="revFileLink" href="#" class="preview-ppt-link">
                     <span id="revFileName">presentation.pptx</span>
                     <span class="preview-eye-icon">👁️ View</span>
                   </a>
@@ -519,33 +519,19 @@
     </div>
   </div>
 
-  <!-- ==================== SANDBOX PAYMENT SIMULATOR MODAL ==================== -->
-  <div class="modal-overlay" id="sandboxModal">
-    <div class="modal-content" style="max-width:520px; text-align:center;">
-      <div style="width:54px; height:54px; border-radius:50%; background:var(--blue-pale); border:2px solid var(--blue); display:grid; place-items:center; margin:0 auto 1rem; color:var(--blue);">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+  <div class="modal-overlay" id="pptPreviewModal" aria-hidden="true">
+    <section class="modal-content ppt-preview-modal" role="dialog" aria-modal="true" aria-labelledby="pptPreviewTitle">
+      <div class="modal-head">
+        <div><h3 id="pptPreviewTitle">Presentation Preview</h3></div>
+        <button type="button" class="modal-close-btn" id="closePptPreview" aria-label="Close presentation preview">&times;</button>
       </div>
-      <h3>Development Payment Simulator</h3>
-      <p class="muted" style="font-size:0.92rem; margin-bottom:1.5rem;">
-        Razorpay test keys are in development sandbox mode. You can simulate an instantaneous verified payment or simulate a failed checkout attempt.
-      </p>
-
-      <div style="background:var(--blue-pale); padding:1rem; border-radius:var(--radius-md); margin-bottom:1.5rem; text-align:left;">
-        <div style="display:flex; justify-content:space-between; margin-bottom:0.4rem;">
-          <small class="muted">Order Reference:</small>
-          <strong id="sbxOrderId" class="mono">–</strong>
-        </div>
-        <div style="display:flex; justify-content:space-between;">
-          <small class="muted">Amount Payable (Real-Time):</small>
-          <strong style="color:var(--green-dark);" id="sbxAmountPayable">₹198.00</strong>
-        </div>
+      <div class="ppt-preview-toolbar">
+        <button type="button" class="btn btn-outline btn-sm" id="pptPrevSlide" disabled>← Previous</button>
+        <span id="pptSlideCount" aria-live="polite">Slide 0 of 0</span>
+        <button type="button" class="btn btn-outline btn-sm" id="pptNextSlide" disabled>Next →</button>
       </div>
-
-      <div style="display:flex; gap:1rem; justify-content:center;">
-        <button type="button" class="btn btn-outline btn-sm modal-close-trigger" id="btnSimulateFail">Simulate Failure / Close</button>
-        <button type="button" class="btn btn-primary btn-sm" id="btnSimulateSuccess">Simulate Successful Payment ✓</button>
-      </div>
-    </div>
+      <div id="pptPreviewStage" class="ppt-preview-stage" aria-live="polite">Loading presentation preview…</div>
+    </section>
   </div>
 
   <!-- Wizard Engine Script -->
