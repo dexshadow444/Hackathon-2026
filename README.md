@@ -13,6 +13,10 @@
 | `/register` | Page | **3-Step Registration Wizard** (Team & Crew composition, Idea Submission with live char counters & PPT upload, Review & Payment with mandatory Terms consent). |
 | `/terms` | Page | **Full Terms & Conditions** detailing IP ownership, R&D rights, data privacy, and refund policies. |
 | `/confirmation/{team_code}` | Page | **Official Team Access Pass & Payment Receipt** with a printable ticket layout, barcode/QR visual, and Print/Save as PDF. |
+
+### Vercel deployment
+
+Vercel function files are read-only at runtime. The app automatically uses `/tmp` for its temporary SQLite and upload fallback, but that storage is not persistent. Set `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`, `SUPABASE_BUCKET`, `RAZORPAY_KEY_ID`, and `RAZORPAY_KEY_SECRET` in **Vercel → Project Settings → Environment Variables** before deploying for persistent registrations and live payments.
 | `/admin/login` | Page | **Minimal, Secure Admin Authentication Portal** (hashed credential verification & session cookies). |
 | `/admin` | Page | **Minimal Admin Command Center** with 6 metrics cards, live search, multi-filters (track, review status, payment status), team dossier modal with instant auto-saving status/notes, and 1-click Excel/CSV export. |
 | `/download/idea-template` | File | Serves the official 5-slide PowerPoint deck template (`.pptx`). |

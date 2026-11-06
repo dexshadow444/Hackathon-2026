@@ -5,6 +5,7 @@ import sqlite3
 import uuid
 from datetime import datetime, timezone
 from pathlib import Path
+from tempfile import gettempdir
 from typing import Any, Dict, List, Optional
 
 from . import content
@@ -12,7 +13,8 @@ from .config import settings
 
 log = logging.getLogger("hackathon.db")
 
-DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+PROJECT_DATA_DIR = Path(__file__).resolve().parent.parent / "data"
+DATA_DIR = Path(gettempdir()) / "hackathon-data" if os.getenv("VERCEL") else PROJECT_DATA_DIR
 UPLOAD_DIR = DATA_DIR / "uploads"
 SQLITE_DB_PATH = DATA_DIR / "hackathon.db"
 
