@@ -44,9 +44,7 @@
         <strong>Team Registration</strong>
         <span class="badge-status shortlisted" style="margin-left:0.6rem; font-size:0.75rem;">LIVE WINDOW</span>
       </div>
-      <div>
-        <a class="btn btn-outline btn-sm" href="/" id="topBackBtn">← Back to Event Page</a>
-      </div>
+      <a class="btn btn-outline btn-sm" href="/" id="topBackBtn">← Back to Event Page</a>
     </div>
   </div>
 
@@ -351,10 +349,10 @@
                   <div style="font-size:0.8rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Uploaded Presentation (Click to preview)</div>
                   <!-- Clickable file link -->
                   <a id="selectedFileLink" href="#" class="preview-ppt-link" title="Preview uploaded presentation">
-                    <span id="selectedFileName">filename.pptx</span>
+                    <span id="selectedFileName"></span>
                     <span class="preview-eye-icon">👁️ View Deck</span>
                   </a>
-                  <div id="selectedFileSize" class="muted" style="font-size:0.82rem; margin-top:0.15rem;">2.4 MB</div>
+                  <div id="selectedFileSize" class="muted" style="font-size:0.82rem; margin-top:0.15rem;"></div>
                 </div>
               </div>
               <button type="button" class="btn-remove-member" id="btnRemoveFile">Replace File</button>
@@ -426,11 +424,11 @@
               <div class="review-item"><small>Idea Title</small><strong id="revIdeaTitle">–</strong></div>
               <div class="review-item"><small>Executive Abstract</small><p id="revIdeaSummary" class="muted" style="margin:0.2rem 0 0; font-size:0.92rem;"></p></div>
               <!-- Requirement 15: Clickable PPT link in review section -->
-              <div class="review-item">
+              <div class="review-item" id="reviewPresentationFile" hidden>
                 <small>Presentation File (Click to preview)</small>
                 <div>
                   <a id="revFileLink" href="#" class="preview-ppt-link">
-                    <span id="revFileName">presentation.pptx</span>
+                    <span id="revFileName"></span>
                     <span class="preview-eye-icon">👁️ View</span>
                   </a>
                 </div>

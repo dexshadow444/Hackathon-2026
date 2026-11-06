@@ -2255,13 +2255,34 @@ section {
 
 @media (max-width: 600px) {
   body {
-    font-size: 15px;
+    font-size: 14px;
+    text-align: center;
   }
+  h1 { font-size: 2rem; }
+  h2 { font-size: 1.55rem; }
+  h3 { font-size: 1.2rem; }
+  h4 { font-size: 1rem; }
+  p { margin-bottom: 0.8rem; }
   .container {
     padding: 0 1rem;
   }
+  .btn {
+    font-size: 0.86rem;
+    padding: 0.7rem 1.15rem;
+  }
+  input,
+  textarea,
+  select {
+    text-align: left;
+    font-size: 0.9rem;
+  }
+  .field label,
+  .field-hint,
+  .field-error {
+    text-align: center;
+  }
   .hero h1 {
-    font-size: 2.2rem;
+    font-size: 2rem;
   }
   .nav-inner {
     min-height: 64px;
@@ -2297,6 +2318,94 @@ section {
     width: 34px;
     height: 34px;
     flex: 0 0 34px;
+  }
+  .hero-meta,
+  .cta-row,
+  .hero-hud-strip,
+  .footer-inner,
+  .footer .container > div:last-child {
+    justify-content: center !important;
+    text-align: center;
+  }
+  .hero-meta,
+  .cta-row,
+  .hero-hud-strip {
+    align-items: center;
+  }
+  .footer {
+    padding: 2.5rem 0 1.5rem;
+  }
+  .footer-inner {
+    flex-direction: column;
+    gap: 1.25rem;
+    padding-bottom: 1.4rem;
+    margin-bottom: 1.1rem;
+  }
+  .footer-inner > div:last-child {
+    justify-content: center !important;
+    gap: 0.9rem !important;
+  }
+  #topBackBtn {
+    display: none;
+  }
+  .reg-subnav-inner,
+  .reg-breadcrumb,
+  .wizard-header-top,
+  .step-title-row,
+  .review-section-head,
+  .file-selected-box,
+  .file-details,
+  .terms-label,
+  .ppt-preview-toolbar {
+    justify-content: center;
+    text-align: center;
+  }
+  .reg-subnav-inner,
+  .wizard-header-top,
+  .step-title-row,
+  .review-section-head,
+  .file-selected-box,
+  .file-details,
+  .ppt-preview-toolbar {
+    flex-direction: column;
+  }
+  .reg-subnav-strip {
+    margin-bottom: 1rem;
+  }
+  .live-pricing-pill {
+    text-align: center;
+  }
+  .horizontal-timeline-track {
+    text-align: left;
+  }
+  .review-grid-2,
+  .review-item,
+  .crew-member-card,
+  .glass-panel,
+  .step-card {
+    text-align: center;
+  }
+  #revCrewList > div {
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+  }
+  .file-selected-box {
+    gap: 0.85rem;
+  }
+  .file-details {
+    gap: 0.6rem;
+  }
+  .preview-ppt-link {
+    justify-content: center;
+    font-size: 0.95rem;
+  }
+  .terms-label {
+    align-items: center;
+  }
+  .terms-checkbox {
+    flex: 0 0 auto;
+    margin-top: 0;
   }
   .modal-content {
     padding: 1.4rem;

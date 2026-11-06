@@ -5,11 +5,11 @@
 
 ---
 
-## 🚀 Live Demo & Route Directory
+## 🚀 Route Directory
 
 | Route | Type | Description |
 |---|---|---|
-| `/` | Page | **JM Vertex Landing Page** with live countdown pass, four tracks, timeline, live team counter, FAQ accordion, and pre-registration alerts. |
+| `/` | Page | **JM Vertex Landing Page** with a live countdown pass, four tracks, timeline, FAQ accordion, and pre-registration alerts. |
 | `/register` | Page | **3-Step Registration Wizard** (Team & Crew composition, Idea Submission with live char counters & PPT upload, Review & Payment with mandatory Terms consent). |
 | `/terms` | Page | **Full Terms & Conditions** detailing IP ownership, R&D rights, data privacy, and refund policies. |
 | `/confirmation/{team_code}` | Page | **Official Team Access Pass & Payment Receipt** with a printable ticket layout, barcode/QR visual, and Print/Save as PDF. |

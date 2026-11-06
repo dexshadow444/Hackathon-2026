@@ -282,7 +282,7 @@ async def register_team(
     # 8. Dynamic Fee Calculation (₹99 per member)
     total_fee_inr = total_team_size * settings.REGISTRATION_FEE_PER_MEMBER_INR
 
-    # Create payment order (Razorpay or Sandbox)
+    # Create a Razorpay payment order for the exact team fee.
     payment_order = create_payment_order(team_code, total_fee_inr)
 
     terms_now = datetime.now(timezone.utc).isoformat()

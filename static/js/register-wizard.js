@@ -523,13 +523,17 @@
     // Requirement 15: Clickable presentation link in Step 3 Review
     const revFileName = $("#revFileName");
     const revFileLink = $("#revFileLink");
+    const reviewPresentationFile = $("#reviewPresentationFile");
     if (selectedFile) {
+      reviewPresentationFile.hidden = false;
       revFileName.textContent = `${selectedFile.name} (${(selectedFile.size / (1024 * 1024)).toFixed(2)} MB)`;
       if (selectedFileUrl && revFileLink) {
         revFileLink.href = selectedFileUrl;
       }
     } else {
-      revFileName.textContent = "None";
+      reviewPresentationFile.hidden = true;
+      revFileName.textContent = "";
+      if (revFileLink) revFileLink.removeAttribute("href");
     }
 
     updateRealtimePricing();
@@ -700,6 +704,8 @@
       fileInput.value = "";
       box.hidden = true;
       dropzone.hidden = false;
+      const reviewPresentationFile = $("#reviewPresentationFile");
+      if (reviewPresentationFile) reviewPresentationFile.hidden = true;
     });
 
     function handleFileSelect(file) {
