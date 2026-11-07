@@ -2431,4 +2431,106 @@ section {
   .admin-input-control {
     width: 100% !important;
   }
+  .admin-shell .container {
+    padding-inline: 0.75rem;
+  }
+  .admin-nav-left,
+  .admin-nav-right {
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+  .admin-nav-left .brand {
+    justify-content: center;
+    width: 100%;
+    font-size: 1rem !important;
+    white-space: normal;
+  }
+  .admin-nav-right .btn,
+  .admin-actions-right .btn {
+    flex: 1 1 0;
+  }
+  .admin-metrics-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.75rem;
+    margin-bottom: 1rem;
+  }
+  .metric-card {
+    min-height: 94px;
+    padding: 0.9rem;
+  }
+  .metric-card .metric-val {
+    font-size: 1.7rem;
+  }
+  .track-breakdown-bar,
+  .track-pills-row,
+  .admin-actions-right {
+    justify-content: center;
+  }
+  .track-breakdown-bar {
+    padding: 0.9rem;
+    margin-bottom: 1rem;
+  }
+  .track-pills-row {
+    width: 100%;
+    gap: 0.5rem;
+  }
+  .track-pill-item {
+    justify-content: center;
+    width: 100%;
+    font-size: 0.78rem;
+  }
+  .admin-toolbar-wrap {
+    padding: 0.9rem;
+    margin-bottom: 1rem;
+  }
+  .admin-actions-right {
+    width: 100%;
+  }
+  .admin-table-container {
+    margin-bottom: 2rem;
+    border-radius: 10px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .admin-data-table th,
+  .admin-data-table td {
+    padding: 0.7rem 0.8rem;
+    font-size: 0.8rem;
+  }
+  .admin-data-table th {
+    font-size: 0.7rem;
+  }
+  .admin-shell .modal-overlay {
+    padding: 0.75rem;
+  }
+  .admin-shell .modal-content {
+    max-height: 94vh;
+    padding: 1rem;
+    text-align: left;
+  }
+  .admin-shell .modal-head,
+  .admin-shell .dossier-section-head {
+    align-items: stretch;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .admin-shell .modal-head > div:last-child,
+  .admin-shell .dossier-section-head .btn {
+    justify-content: center;
+  }
+  .admin-shell .dossier-review-box,
+  .admin-shell .dossier-section {
+    padding: 1rem;
+  }
+  .admin-shell .dossier-review-box > div:nth-child(2),
+  .admin-shell #editModeContainer .form-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .admin-shell #editModeContainer [style*="justify-content:flex-end"] {
+    align-items: stretch;
+    flex-direction: column;
+  }
+  .admin-shell #editModeContainer [style*="justify-content:flex-end"] .btn {
+    width: 100%;
+  }
 }

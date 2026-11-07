@@ -117,29 +117,55 @@
     });
   }
 
-  // 5. Ambient Cyber Audio Effects (Synthesizer Soundscape)
+  // 5. Background music volume control and independent click effects
   try {
     const AudioContext = window.AudioContext || window.webkitAudioContext;
-    if (AudioContext) {
-      let ctx = null;
-      let soundEnabled = false;
+    let ctx = null;
+    const music = new Audio("/static/assets/embrace-background.mp3");
+    music.loop = true;
+    music.volume = 0.05;
+    const soundToggleBtn = document.getElementById("soundToggleBtn");
+    let musicEnabled = localStorage.getItem("hackathon_music_enabled") !== "false";
 
-      const soundToggleBtn = document.getElementById("soundToggleBtn");
-      if (soundToggleBtn) {
-        soundToggleBtn.addEventListener("click", () => {
-          if (!ctx) ctx = new AudioContext();
-          if (ctx.state === "suspended") ctx.resume();
+    const syncSoundToggle = () => {
+      if (!soundToggleBtn) return;
+      soundToggleBtn.classList.toggle("is-active", musicEnabled);
+      soundToggleBtn.setAttribute("aria-pressed", String(musicEnabled));
+      soundToggleBtn.setAttribute("aria-label", musicEnabled ? "Mute background music" : "Play background music");
+      soundToggleBtn.title = musicEnabled ? "Background music on (click to mute)" : "Background music off (click to play)";
+    };
 
-          soundEnabled = !soundEnabled;
-          soundToggleBtn.classList.toggle("is-active", soundEnabled);
-          soundToggleBtn.setAttribute("aria-pressed", String(soundEnabled));
-          soundToggleBtn.title = soundEnabled ? "Cyber Audio Enabled (Click to Mute)" : "Muted (Click to Enable Audio)";
-          playBeep(soundEnabled ? 880 : 330, 0.08);
-        });
-      }
+    const startMusic = () => {
+      if (!musicEnabled) return;
+      music.play().catch(() => {
+        // Autoplay may require a user gesture; retry on the first interaction.
+        const resume = () => {
+          music.play().catch(() => {});
+          document.removeEventListener("pointerdown", resume);
+          document.removeEventListener("keydown", resume);
+        };
+        document.addEventListener("pointerdown", resume, { once: true });
+        document.addEventListener("keydown", resume, { once: true });
+      });
+    };
 
-      function playBeep(freq = 600, duration = 0.06) {
-        if (!soundEnabled || !ctx) return;
+    syncSoundToggle();
+    startMusic();
+
+    if (soundToggleBtn) {
+      soundToggleBtn.addEventListener("click", () => {
+        musicEnabled = !musicEnabled;
+        localStorage.setItem("hackathon_music_enabled", String(musicEnabled));
+        if (musicEnabled) startMusic();
+        else music.pause();
+        syncSoundToggle();
+      });
+    }
+
+    function playBeep(freq = 600, duration = 0.06) {
+      if (!AudioContext) return;
+      if (!ctx) ctx = new AudioContext();
+      if (ctx.state === "suspended") ctx.resume();
         const osc = ctx.createOscillator();
         const gain = ctx.createGain();
         osc.type = "sine";
@@ -150,14 +176,11 @@
         gain.connect(ctx.destination);
         osc.start();
         osc.stop(ctx.currentTime + duration);
-      }
-
-      // Add soft tick sounds to clicks
-      document.addEventListener("click", (e) => {
-        if (e.target.closest("button, a, .track-card, summary")) {
-          playBeep(720, 0.05);
-        }
-      }, { passive: true });
     }
+
+    // Button and link ticks stay enabled independently of the music control.
+    document.addEventListener("click", (e) => {
+      if (e.target.closest("button, a, .track-card, summary")) playBeep(720, 0.05);
+    }, { passive: true });
   } catch (err) {}
 })();

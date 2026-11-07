@@ -1,7 +1,11 @@
+import html
 import json
 import logging
 import re
+import smtplib
+import threading
 from datetime import datetime, timezone
+from email.message import EmailMessage
 from pathlib import Path
 from typing import Annotated, Any, Dict, List, Optional
 
@@ -31,6 +35,38 @@ ASSETS = Path(__file__).resolve().parent.parent / "assets"
 NOT_SURE = "Not sure yet"
 
 INDIAN_MOBILE_REGEX = re.compile(r"^[6-9]\d{9}$")
+EMAIL_TEMPLATE = Path(__file__).resolve().parents[2] / "email_template.html"
+
+
+def _send_registration_confirmation(name: str, email: str, team_name: str, team_code: str) -> None:
+    """Send a confirmation in a worker thread; failures must not affect registration."""
+    try:
+        if not settings.SMTP_SENDER_EMAIL or not settings.SMTP_SENDER_PASSWORD:
+            log.info("Registration email skipped: SMTP sender credentials are not configured.")
+            return
+
+        template = EMAIL_TEMPLATE.read_text(encoding="utf-8")
+        values = {
+            "name": html.escape(name),
+            "team_name": html.escape(team_name),
+            "team_code": html.escape(team_code),
+        }
+        for key, value in values.items():
+            template = template.replace("{" + key + "}", value)
+
+        message = EmailMessage()
+        message["Subject"] = f"Registration received: {team_name}"
+        message["From"] = settings.SMTP_SENDER_EMAIL
+        message["To"] = email
+        message.set_content("Your registration has been received.")
+        message.add_alternative(template, subtype="html")
+
+        with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=20) as smtp:
+            smtp.starttls()
+            smtp.login(settings.SMTP_SENDER_EMAIL, settings.SMTP_SENDER_PASSWORD)
+            smtp.send_message(message)
+    except Exception:
+        log.exception("Could not send registration confirmation to %s", email)
 
 
 def validate_mobile(phone: str, field_name: str = "Mobile number") -> str:
@@ -320,6 +356,18 @@ async def register_team(
     }
 
     saved = Repository.save_registration(registration_record)
+
+    # The registration is committed before mail is queued. Daemon thread keeps SMTP
+    # latency and failures outside the participant's registration request.
+    try:
+        threading.Thread(
+            target=_send_registration_confirmation,
+            args=(leader_name, leader_email, team_name, team_code),
+            name=f"registration-email-{team_code}",
+            daemon=True,
+        ).start()
+    except Exception:
+        log.exception("Could not start registration confirmation email for %s", team_code)
 
     return {
         "ok": True,

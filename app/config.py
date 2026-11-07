@@ -79,6 +79,12 @@ class Settings:
     CONTACT_EMAIL = _str("CONTACT_EMAIL", "support@jmvertex.com")
     CONTACT_PHONE = _str("CONTACT_PHONE", "+91 98765 43210")
 
+    # Registration confirmation email (SMTP; Gmail uses smtp.gmail.com:587).
+    SMTP_HOST = _str("SMTP_HOST", "smtp.gmail.com")
+    SMTP_PORT = _int("SMTP_PORT", 587)
+    SMTP_SENDER_EMAIL = _str("SMTP_SENDER_EMAIL")
+    SMTP_SENDER_PASSWORD = _str("SMTP_SENDER_PASSWORD")
+
     @property
     def is_production(self) -> bool:
         return self.APP_ENV == "production"
